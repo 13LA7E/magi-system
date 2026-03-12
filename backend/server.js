@@ -2,6 +2,7 @@ require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const cors = require('cors');
 const { runDeliberation } = require('./deliberation');
+const { getDailyCount, logDeliberation, DAILY_LIMIT } = require('./auditLog');
 
 const app = express();
 const PORT = 3001;
@@ -19,7 +20,13 @@ app.use(cors({
 app.use(express.json());
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', units: ['melchior', 'balthasar', 'casper'] });
+  const used = getDailyCount();
+  res.json({
+    status: 'ok',
+    units: ['melchior', 'balthasar', 'casper'],
+    queriesUsedToday: used,
+    queriesRemainingToday: Math.max(0, DAILY_LIMIT - used),
+  });
 });
 
 function buildEscalationBrief(result) {
@@ -63,8 +70,29 @@ app.post('/api/deliberate', async (req, res, next) => {
     return res.status(400).json({ status: 'error', message: 'mode must be a non-empty string' });
   }
 
+  const dailyUsed = getDailyCount();
+  if (dailyUsed >= DAILY_LIMIT) {
+    return res.status(429).json({
+      status: 'error',
+      message: `Daily query limit of ${DAILY_LIMIT} reached. Resets at midnight UTC.`,
+    });
+  }
+
   try {
+    const deliberationStart = Date.now();
     const result = await runDeliberation(query, mode);
+    const durationMs = Date.now() - deliberationStart;
+
+    logDeliberation({
+      query: query.slice(0, 300),
+      mode,
+      melchior:  { verdict: result.melchior.verdict,  confidence: result.melchior.confidence  },
+      balthasar: { verdict: result.balthasar.verdict, confidence: result.balthasar.confidence },
+      casper:    { verdict: result.casper.verdict,    confidence: result.casper.confidence    },
+      consensus: result.consensus,
+      escalate:  result.escalate,
+      durationMs,
+    });
 
     const response = { status: 'ok', ...result };
     if (result.escalate) {
