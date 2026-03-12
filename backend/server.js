@@ -2,7 +2,7 @@ require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const cors = require('cors');
 const { runDeliberation } = require('./deliberation');
-const { getDailyCount, logDeliberation, DAILY_LIMIT } = require('./auditLog');
+const { getDailyCount, logDeliberation, getRecentLogs, DAILY_LIMIT } = require('./auditLog');
 
 const app = express();
 const PORT = 3001;
@@ -27,6 +27,24 @@ app.get('/health', (req, res) => {
     queriesUsedToday: used,
     queriesRemainingToday: Math.max(0, DAILY_LIMIT - used),
   });
+});
+
+app.get('/api/audit', (req, res) => {
+  const logs = getRecentLogs(10);
+  const formatted = logs.map((e) => ({
+    timestamp: e.timestamp,
+    query: e.query ? e.query.slice(0, 80) + (e.query.length > 80 ? '…' : '') : '',
+    mode: e.mode || '',
+    consensus: e.consensus || '',
+    escalate: !!e.escalate,
+    durationMs: e.durationMs ?? null,
+    units: {
+      melchior:  e.melchior  || null,
+      balthasar: e.balthasar || null,
+      casper:    e.casper    || null,
+    },
+  }));
+  res.json({ status: 'ok', count: formatted.length, entries: formatted });
 });
 
 function buildEscalationBrief(result) {

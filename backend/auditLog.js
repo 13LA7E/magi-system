@@ -32,4 +32,9 @@ function logDeliberation(entry) {
   writeLog(entries);
 }
 
-module.exports = { getDailyCount, logDeliberation, DAILY_LIMIT };
+function getRecentLogs(n = 10) {
+  const entries = readLog();
+  return entries.slice(-n).reverse();
+}
+
+module.exports = { getDailyCount, logDeliberation, getRecentLogs, DAILY_LIMIT };
