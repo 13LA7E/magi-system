@@ -59,11 +59,11 @@ curl http://localhost:3001/health
 
 ### 4. Open the frontend
 
-Open `frontend/index.html` directly in your browser (no web server needed):
+Open `docs/index.html` directly in your browser (no web server needed):
 
-- On Windows: double-click the file, or run `start frontend/index.html`
-- On macOS: `open frontend/index.html`
-- On Linux: `xdg-open frontend/index.html`
+- On Windows: double-click the file, or run `start docs/index.html`
+- On macOS: `open docs/index.html`
+- On Linux: `xdg-open docs/index.html`
 
 ### Usage
 
