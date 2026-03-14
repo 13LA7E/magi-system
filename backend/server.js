@@ -1,6 +1,8 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
+const fs = require('fs');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
 const { getDailyCount, logDeliberation, getRecentLogs, DAILY_LIMIT } = require('./auditLog');
@@ -207,6 +209,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ status: 'error', message: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`MAGI backend listening on port ${PORT}`);
+const sslOptions = {
+  key: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/fullchain.pem')
+};
+
+https.createServer(sslOptions, app).listen(443, () => {
+  console.log('MAGI backend running on HTTPS port 443');
+});
+
+app.listen(3001, () => {
+  console.log('MAGI backend running on HTTP port 3001');
 });
