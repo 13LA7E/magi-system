@@ -2,6 +2,10 @@
 
 A three-unit AI deliberation system inspired by the MAGI supercomputer from Neon Genesis Evangelion. Three independent AI units — MELCHIOR (logic), BALTHASAR (ethics), and CASPER (intuition) — each powered by a different AI provider, deliberate on a query and produce a confidence-weighted consensus.
 
+## Live Webpage
+
+[https://13la7e.github.io/magi-system/](https://13la7e.github.io/magi-system/)
+
 ## Architecture
 
 | Unit | Role | AI Provider |
