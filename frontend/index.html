@@ -14,6 +14,7 @@
       --green-faint: rgba(0,255,65,0.05);
       --red:         #ff2200;
       --amber:       #ffaa00;
+      --info:        #8fd7ff;
       --bg:          #000000;
       --panel-bg:    #020f04;
       --border:      rgba(0,255,65,0.28);
@@ -318,6 +319,12 @@
     .consensus-value.rejected { color:#ff2200; text-shadow:0 0 22px #ff2200; }
     .consensus-value.split    { color:var(--amber); text-shadow:0 0 22px var(--amber); animation: amber-pulse 1.1s infinite; }
     .consensus-value.deadlock { color:#ff2200; text-shadow:0 0 28px #ff2200, 0 0 56px #ff2200; animation: deadlock-pulse 0.42s infinite; font-size: clamp(26px, 3vw, 38px); }
+    .consensus-value.insufficient_context {
+      color: var(--info);
+      text-shadow: 0 0 20px rgba(143,215,255,0.8);
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.35;
+    }
 
     .score-block { text-align: center; min-width: 110px; }
     .score-caption { font-size: 10px; letter-spacing: 3px; color: var(--green-dim); margin-bottom: 8px; }
@@ -331,6 +338,33 @@
     .tally-verdict.rejected { color: #ff2200; }
     .tally-verdict.abstain  { color: var(--amber); }
     .tally-conf { color: var(--green-dim); font-size: 11px; }
+
+    .synthesis-export-row {
+      display: none;
+      justify-content: flex-end;
+      margin-top: 18px;
+      border-top: 1px solid rgba(0,255,65,0.14);
+      padding-top: 14px;
+    }
+    .synthesis-export-row.visible { display: flex; }
+    .export-btn {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--green);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 9px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .export-btn:hover {
+      border-color: var(--green);
+      box-shadow: var(--glow);
+      text-shadow: 0 0 8px rgba(0,255,65,0.65);
+    }
+    .export-btn:active { transform: scale(0.98); }
 
     /* ─── Audit log panel ─── */
     .audit-panel {
@@ -358,6 +392,20 @@
       transition: all 0.15s;
     }
     .audit-refresh-btn:hover { color: var(--green); border-color: var(--green); box-shadow: var(--glow); }
+    .audit-run-btn {
+      font-family: inherit;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--green);
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .audit-run-btn:hover { border-color: var(--green); box-shadow: var(--glow); }
+    .audit-run-col { text-align: right; white-space: nowrap; }
     .audit-empty {
       text-align: center; padding: 24px; font-size: 11px;
       color: var(--green-dark); letter-spacing: 3px;
@@ -390,6 +438,7 @@
     .audit-consensus.rejected { color: #ff2200; }
     .audit-consensus.split    { color: var(--amber); }
     .audit-consensus.deadlock { color: #ff2200; font-weight: bold; }
+    .audit-consensus.insufficient_context { color: var(--info); font-weight: bold; }
     .audit-consensus.abstain  { color: var(--green-dim); }
     .audit-escalate { color: #ff4422; font-size: 10px; }
     .audit-ts { color: var(--green-dim); font-size: 10px; white-space: nowrap; }
@@ -443,6 +492,10 @@
       border-color: rgba(255,170,0,0.7);
       box-shadow: 0 0 24px rgba(255,170,0,0.18);
     }
+    .synthesis-panel.insufficient-mode {
+      border-color: rgba(143,215,255,0.85);
+      box-shadow: 0 0 28px rgba(143,215,255,0.2), inset 0 0 22px rgba(143,215,255,0.05);
+    }
     @keyframes border-alarm {
       0%,100% { border-color:rgba(255,34,0,0.85); box-shadow:0 0 36px rgba(255,34,0,0.3);  }
       50%     { border-color:rgba(255,34,0,0.18); box-shadow:0 0 8px  rgba(255,34,0,0.08); }
@@ -454,6 +507,10 @@
     }
     .state-banner.deadlock { color:#ff2200; text-shadow:0 0 14px #ff2200; animation:deadlock-pulse 0.42s infinite; }
     .state-banner.split    { color:var(--amber); text-shadow:0 0 10px var(--amber); animation:amber-pulse 1.1s infinite; }
+    .state-banner.insufficient_context {
+      color: var(--info);
+      text-shadow: 0 0 12px rgba(143,215,255,0.85);
+    }
 
     /* ─── Responsive ─── */
     @media (max-width: 960px) {
@@ -487,10 +544,9 @@
     <div class="query-controls">
       <span class="mode-label">DELIBERATION MODE:</span>
       <select class="mode-select" id="mode-select">
-        <option value="STANDARD">STANDARD</option>
-        <option value="EMERGENCY">EMERGENCY</option>
-        <option value="CRITICAL">CRITICAL</option>
-        <option value="ADVISORY">ADVISORY</option>
+        <option value="CONSENSUS">CONSENSUS</option>
+        <option value="DEBATE">DEBATE</option>
+        <option value="ANALYSIS">ANALYSIS</option>
       </select>
     </div>
     <textarea class="query-input" id="query-input" rows="4"
@@ -589,6 +645,9 @@
     <div id="synthesis-body">
       <div class="synthesis-placeholder">DELIBERATION RESULT WILL APPEAR HERE</div>
     </div>
+    <div class="synthesis-export-row" id="synthesis-export-row">
+      <button type="button" class="export-btn" id="export-btn">⬇ EXPORT DELIBERATION TRANSCRIPT</button>
+    </div>
   </div>
 
   <!-- Audit log -->
@@ -612,7 +671,7 @@
   async function fetchAuditLog() {
     const body = document.getElementById('audit-body');
     try {
-      const res = await fetch('http://localhost:3001/api/audit');
+      const res = await fetch('http://46.101.228.6:3001/api/audit');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
@@ -630,6 +689,7 @@
         const vc      = (e.consensus || 'abstain').toLowerCase();
         const escFlag = e.escalate ? '<span class="audit-escalate">⚠</span>' : '';
         const query   = e.query ? e.query.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '—';
+        const encodedQuery = e.query ? encodeURIComponent(e.query) : '';
         const mode    = e.mode || '—';
         return `<tr>
           <td class="audit-ts">${ts}</td>
@@ -637,6 +697,7 @@
           <td style="white-space:nowrap;color:var(--green-dim);font-size:10px">${mode}</td>
           <td class="audit-consensus ${vc}">${e.consensus || '—'} ${escFlag}</td>
           <td class="audit-dur">${dur}</td>
+          <td class="audit-run-col"><button type="button" class="audit-run-btn" data-run-query="${encodedQuery}">↺ RUN</button></td>
         </tr>`;
       }).join('');
 
@@ -649,6 +710,7 @@
               <th>MODE</th>
               <th>CONSENSUS</th>
               <th>DURATION</th>
+              <th>RUN</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
@@ -673,7 +735,7 @@
   /* ── Daily query counter ── */
   async function fetchDailyCount() {
     try {
-      const res = await fetch('http://localhost:3001/health');
+      const res = await fetch('http://46.101.228.6:3001/health');
       if (!res.ok) return;
       const data = await res.json();
       const used      = data.queriesUsedToday      ?? 0;
@@ -705,6 +767,93 @@
     document.getElementById('char-count').textContent =
       queryInput.value.length + ' CHARACTERS';
   });
+
+  document.getElementById('audit-body').addEventListener('click', (event) => {
+    const runBtn = event.target.closest('.audit-run-btn');
+    if (!runBtn) return;
+
+    const encodedQuery = runBtn.getAttribute('data-run-query') || '';
+    const query = encodedQuery ? decodeURIComponent(encodedQuery) : '';
+    if (!query) return;
+
+    queryInput.value = query;
+    document.getElementById('char-count').textContent = query.length + ' CHARACTERS';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Trigger the same deliberation flow as manual submit after the UI scroll starts.
+    setTimeout(() => submitQuery(), 120);
+  });
+
+  const exportBtn = document.getElementById('export-btn');
+  const exportRow = document.getElementById('synthesis-export-row');
+  let latestTranscript = null;
+
+  function hideExportButton() {
+    exportRow.classList.remove('visible');
+  }
+
+  function showExportButton() {
+    exportRow.classList.add('visible');
+  }
+
+  function buildTranscriptText(entry) {
+    const result = entry.result;
+    const melchior = result.melchior || {};
+    const balthasar = result.balthasar || {};
+    const casper = result.casper || {};
+    const escalationRequired = result.escalate ? 'yes' : 'no';
+
+    const lines = [
+      '--- MAGI DELIBERATION TRANSCRIPT ---',
+      `Date: ${entry.timestamp}`,
+      `Query: ${entry.query}`,
+      `Mode: ${entry.mode}`,
+      '',
+      'MELCHIOR-1 [Anthropic]',
+      `Verdict: ${melchior.verdict || 'ABSTAIN'} | Confidence: ${melchior.confidence ?? 0}%`,
+      melchior.response || '',
+      '',
+      'BALTHASAR-2 [Google]',
+      `Verdict: ${balthasar.verdict || 'ABSTAIN'} | Confidence: ${balthasar.confidence ?? 0}%`,
+      balthasar.response || '',
+      '',
+      'CASPER-3 [OpenAI]',
+      `Verdict: ${casper.verdict || 'ABSTAIN'} | Confidence: ${casper.confidence ?? 0}%`,
+      casper.response || '',
+      '',
+      'SYNTHESIS',
+      `Consensus: ${result.consensus || ''}`,
+      `Weighted Delta: ${result.weightedScore ?? 0}`,
+      `Escalation Required: ${escalationRequired}`,
+    ];
+
+    if (result.escalate && result.escalationBrief) {
+      lines.push(result.escalationBrief);
+    }
+
+    lines.push('', '--- END OF TRANSCRIPT ---');
+    return lines.join('\n');
+  }
+
+  function downloadTranscript() {
+    if (!latestTranscript) return;
+
+    const transcript = buildTranscriptText(latestTranscript);
+    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const stamp = latestTranscript.timestamp.replace(/[:.]/g, '-');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `magi-deliberation-${stamp}.txt`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  exportBtn.addEventListener('click', downloadTranscript);
+  hideExportButton();
 
   /* ── Helpers ── */
   function setStatus(msg) {
@@ -778,14 +927,21 @@
 
   function renderSynthesis(result) {
     const vc         = vcClass(result.consensus);
+    const isInsufficientContext = result.consensus === 'INSUFFICIENT_CONTEXT';
+    const consensusLabel = isInsufficientContext
+      ? 'INSUFFICIENT CONTEXT — QUERY REQUIRES CLARIFICATION'
+      : result.consensus;
     const sign       = result.weightedScore > 0 ? '+' : '';
-    const scoreColor = result.weightedScore >= 0 ? 'var(--green)' : '#ff2200';
+    const scoreColor = isInsufficientContext
+      ? 'var(--info)'
+      : (result.weightedScore >= 0 ? 'var(--green)' : '#ff2200');
     const isDeadlock = result.consensus === 'DEADLOCK';
     const isSplit    = result.consensus === 'SPLIT';
 
     const synthPanel = document.querySelector('.synthesis-panel');
     synthPanel.classList.toggle('deadlock-mode', isDeadlock);
     synthPanel.classList.toggle('split-mode', isSplit && !isDeadlock);
+    synthPanel.classList.toggle('insufficient-mode', isInsufficientContext);
 
     const units = [
       { name: 'MELCHIOR-1',  data: result.melchior  },
@@ -807,6 +963,8 @@
       ? `<div class="state-banner deadlock">&#9888; SYSTEM DEADLOCK DETECTED &#8212; HUMAN OVERRIDE REQUIRED &#9888;</div>`
       : isSplit
       ? `<div class="state-banner split">&#9651; SPLIT VERDICT &#8212; CONSENSUS INCONCLUSIVE &#8212; ESCALATION RECOMMENDED</div>`
+      : isInsufficientContext
+      ? `<div class="state-banner insufficient_context">INSUFFICIENT CONTEXT &#8212; QUERY REQUIRES CLARIFICATION</div>`
       : '';
 
     document.getElementById('synthesis-body').innerHTML = `
@@ -814,7 +972,7 @@
       <div class="synthesis-content">
         <div class="consensus-block">
           <div class="consensus-caption">CONSENSUS</div>
-          <div class="consensus-value ${vc}">${result.consensus}</div>
+          <div class="consensus-value ${vc}">${consensusLabel}</div>
         </div>
         <div class="synth-divider"></div>
         <div class="score-block">
@@ -851,6 +1009,8 @@
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
     hideEscalation();
+    hideExportButton();
+    latestTranscript = null;
     setStatus('DELIBERATION IN PROGRESS...');
 
     ['melchior', 'balthasar', 'casper'].forEach(setLoadingState);
@@ -858,7 +1018,7 @@
       '<div class="synthesis-placeholder">AWAITING UNIT RESPONSES...</div>';
 
     try {
-      const res = await fetch('http://localhost:3001/api/deliberate', {
+      const res = await fetch('http://46.101.228.6:3001/api/deliberate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, mode }),
@@ -873,6 +1033,14 @@
 
       ['melchior', 'balthasar', 'casper'].forEach(u => populatePanel(u, data[u]));
       renderSynthesis(data);
+
+      latestTranscript = {
+        timestamp: new Date().toISOString(),
+        query,
+        mode,
+        result: data,
+      };
+      showExportButton();
 
       if (data.escalate && data.escalationBrief) {
         showEscalation(data.escalationBrief);
@@ -889,6 +1057,8 @@
       });
       document.getElementById('synthesis-body').innerHTML =
         `<div class="synthesis-placeholder" style="color:#ff2200">ERROR: ${err.message}</div>`;
+      hideExportButton();
+      latestTranscript = null;
       setStatus('DELIBERATION FAILED');
     } finally {
       btn.disabled = false;
