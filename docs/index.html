@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MAGI SYSTEM — NERV CENTRAL DOGMA</title>
@@ -671,7 +672,7 @@
   async function fetchAuditLog() {
     const body = document.getElementById('audit-body');
     try {
-      const res = await fetch('http://46.101.228.6:3001/api/audit');
+      const res = await fetch('https://api.trymagi.tech/api/audit');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
@@ -735,7 +736,7 @@
   /* ── Daily query counter ── */
   async function fetchDailyCount() {
     try {
-      const res = await fetch('http://46.101.228.6:3001/health');
+      const res = await fetch('https://api.trymagi.tech/health');
       if (!res.ok) return;
       const data = await res.json();
       const used      = data.queriesUsedToday      ?? 0;
@@ -1018,7 +1019,7 @@
       '<div class="synthesis-placeholder">AWAITING UNIT RESPONSES...</div>';
 
     try {
-      const res = await fetch('http://46.101.228.6:3001/api/deliberate', {
+      const res = await fetch('https://api.trymagi.tech/api/deliberate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, mode }),
