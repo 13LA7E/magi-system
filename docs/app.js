@@ -1,0 +1,1 @@
+// MAGI System frontend logic
