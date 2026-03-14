@@ -21,15 +21,16 @@ function logApiKeyStatus() {
 
 logApiKeyStatus();
 
+const allowedOrigins = [
+  'http://localhost:3001',
+  'http://127.0.0.1:5500',
+  'https://13la7e.github.io',
+];
+
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (file://, curl, etc.) and localhost origins
-    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Not allowed by CORS'));
-  },
+  origin: allowedOrigins,
   methods: ['GET', 'POST'],
+  credentials: true,
 }));
 app.use(express.json());
 
