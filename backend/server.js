@@ -7,10 +7,11 @@ const http = require('http');
 const fs = require('fs');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
-const { getDailyCount, logDeliberation, getRecentLogs, DAILY_LIMIT } = require('./auditLog');
+const { connectDB, getDailyCount, logDeliberation, getRecentLogs } = require('./db');
 
 const app = express();
 const PORT = 3001;
+const DAILY_LIMIT = 100;
 
 function hasEnvValue(key) {
   return typeof process.env[key] === 'string' && process.env[key].trim().length > 0;
@@ -46,37 +47,48 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../docs/index.html'));
 });
 
-app.get('/health', (req, res) => {
-  const used = getDailyCount();
-  res.json({
-    status: 'ok',
-    units: ['melchior', 'balthasar', 'casper'],
-    providers: {
-      melchior: 'Anthropic',
-      balthasar: 'Google',
-      casper: 'OpenAI',
-    },
-    queriesUsedToday: used,
-    queriesRemainingToday: Math.max(0, DAILY_LIMIT - used),
-  });
+app.get('/health', async (req, res, next) => {
+  try {
+    const used = await getDailyCount();
+    res.json({
+      status: 'ok',
+      units: ['melchior', 'balthasar', 'casper'],
+      providers: {
+        melchior: 'Anthropic',
+        balthasar: 'Google',
+        casper: 'OpenAI',
+      },
+      queriesUsedToday: used,
+      queriesRemainingToday: Math.max(0, DAILY_LIMIT - used),
+    });
+  } catch (err) {
+    return next(err);
+  }
 });
 
-app.get('/api/audit', (req, res) => {
-  const logs = getRecentLogs(10);
-  const formatted = logs.map((e) => ({
-    timestamp: e.timestamp,
-    query: e.query ? e.query.slice(0, 80) + (e.query.length > 80 ? '…' : '') : '',
-    mode: e.mode || '',
-    consensus: e.consensus || '',
-    escalate: !!e.escalate,
-    durationMs: e.durationMs ?? null,
-    units: {
-      melchior:  e.melchior  || null,
-      balthasar: e.balthasar || null,
-      casper:    e.casper    || null,
-    },
-  }));
-  res.json({ status: 'ok', count: formatted.length, entries: formatted });
+app.get('/api/audit', async (req, res, next) => {
+  try {
+    const logs = await getRecentLogs(10);
+    const formatted = logs.map((e) => {
+      const stage2 = e.stage2 || {};
+      return {
+        timestamp: e.timestamp,
+        query: e.query ? e.query.slice(0, 80) + (e.query.length > 80 ? '…' : '') : '',
+        mode: e.mode || '',
+        consensus: e.consensus || '',
+        escalate: !!e.escalate,
+        durationMs: e.durationMs ?? e.duration ?? null,
+        units: {
+          melchior:  stage2.melchior  || e.melchior  || null,
+          balthasar: stage2.balthasar || e.balthasar || null,
+          casper:    stage2.casper    || e.casper    || null,
+        },
+      };
+    });
+    res.json({ status: 'ok', count: formatted.length, entries: formatted });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 function summarizeText(text, maxLength = 220) {
@@ -224,7 +236,7 @@ Respond ONLY in this exact JSON format with no preamble or markdown:
 }
 
 app.post('/api/deliberate', async (req, res, next) => {
-  const { query, mode } = req.body;
+  const { query, mode, testerId } = req.body;
 
   if (!query || typeof query !== 'string') {
     return res.status(400).json({ status: 'error', message: 'query must be a non-empty string' });
@@ -241,7 +253,7 @@ app.post('/api/deliberate', async (req, res, next) => {
 
   const cleanQuery = triage.query;
 
-  const dailyUsed = getDailyCount();
+  const dailyUsed = await getDailyCount();
   if (dailyUsed >= DAILY_LIMIT) {
     return res.status(429).json({
       status: 'error',
@@ -259,16 +271,52 @@ app.post('/api/deliberate', async (req, res, next) => {
     );
     const durationMs = Date.now() - deliberationStart;
 
+    const s1 = result.stage1 || {};
     const s2 = result.stage2 || result.stage1 || {};
-    logDeliberation({
+    await logDeliberation({
       query: cleanQuery.slice(0, 300),
       mode,
-      melchior:  { verdict: (s2.melchior  || {}).verdict  || 'ABSTAIN', confidence: (s2.melchior  || {}).confidence  || 0 },
-      balthasar: { verdict: (s2.balthasar || {}).verdict  || 'ABSTAIN', confidence: (s2.balthasar || {}).confidence || 0 },
-      casper:    { verdict: (s2.casper    || {}).verdict  || 'ABSTAIN', confidence: (s2.casper    || {}).confidence || 0 },
+      testerId: typeof testerId === 'string' ? testerId : '',
+      stage1: {
+        melchior: {
+          verdict: (s1.melchior || {}).verdict || 'ABSTAIN',
+          confidence: (s1.melchior || {}).confidence || 0,
+        },
+        balthasar: {
+          verdict: (s1.balthasar || {}).verdict || 'ABSTAIN',
+          confidence: (s1.balthasar || {}).confidence || 0,
+        },
+        casper: {
+          verdict: (s1.casper || {}).verdict || 'ABSTAIN',
+          confidence: (s1.casper || {}).confidence || 0,
+        },
+      },
+      stage2: {
+        melchior: {
+          verdict: (s2.melchior || {}).verdict || 'ABSTAIN',
+          confidence: (s2.melchior || {}).confidence || 0,
+          decision: (s2.melchior || {}).decision || 'HOLD',
+        },
+        balthasar: {
+          verdict: (s2.balthasar || {}).verdict || 'ABSTAIN',
+          confidence: (s2.balthasar || {}).confidence || 0,
+          decision: (s2.balthasar || {}).decision || 'HOLD',
+        },
+        casper: {
+          verdict: (s2.casper || {}).verdict || 'ABSTAIN',
+          confidence: (s2.casper || {}).confidence || 0,
+          decision: (s2.casper || {}).decision || 'HOLD',
+        },
+      },
+      assumptions: {
+        melchior: (result.assumptions || {}).melchior || '',
+        balthasar: (result.assumptions || {}).balthasar || '',
+        casper: (result.assumptions || {}).casper || '',
+      },
       consensus: result.consensus,
+      weightedScore: result.weightedScore,
       escalate:  result.escalate,
-      durationMs,
+      duration: durationMs,
     });
 
     const response = { status: 'ok', ...result, synthesis };
@@ -298,6 +346,10 @@ app.use((err, req, res, next) => {
 // https.createServer(sslOptions, app).listen(443, () => {
 //   console.log('MAGI backend running on HTTPS port 443');
 // });
+
+connectDB().catch((err) => {
+  console.error('MongoDB connection failed:', err.message);
+});
 
 app.listen(3001, () => {
   console.log('MAGI backend running on HTTP port 3001');
