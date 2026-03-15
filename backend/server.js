@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
 const { getDailyCount, logDeliberation, getRecentLogs, DAILY_LIMIT } = require('./auditLog');
@@ -37,6 +38,10 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docs/index.html'));
+});
 
 app.get('/health', (req, res) => {
   const used = getDailyCount();
