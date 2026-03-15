@@ -73,6 +73,7 @@ app.get('/api/audit', async (req, res, next) => {
       const stage2 = e.stage2 || {};
       return {
         timestamp: e.timestamp,
+        testerId: e.testerId && e.testerId.trim() ? e.testerId.trim() : 'ANONYMOUS',
         query: e.query ? e.query.slice(0, 80) + (e.query.length > 80 ? '…' : '') : '',
         mode: e.mode || '',
         consensus: e.consensus || '',
@@ -252,6 +253,9 @@ app.post('/api/deliberate', async (req, res, next) => {
   }
 
   const cleanQuery = triage.query;
+  const normalizedTesterId = typeof testerId === 'string' && testerId.trim().length > 0
+    ? testerId.trim()
+    : 'ANONYMOUS';
 
   const dailyUsed = await getDailyCount();
   if (dailyUsed >= DAILY_LIMIT) {
@@ -276,7 +280,7 @@ app.post('/api/deliberate', async (req, res, next) => {
     await logDeliberation({
       query: cleanQuery.slice(0, 300),
       mode,
-      testerId: typeof testerId === 'string' ? testerId : '',
+      testerId: normalizedTesterId,
       stage1: {
         melchior: {
           verdict: (s1.melchior || {}).verdict || 'ABSTAIN',

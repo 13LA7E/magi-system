@@ -125,6 +125,32 @@
     }
     select.mode-select:focus { border-color: var(--green); box-shadow: var(--glow); }
 
+    .tester-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      max-width: 420px;
+    }
+    .tester-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--green-dim);
+    }
+    input.tester-id-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--green);
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 1.2px;
+      padding: 8px 10px;
+      outline: none;
+    }
+    input.tester-id-input::placeholder { color: var(--green-dark); }
+    input.tester-id-input:focus { border-color: var(--green); box-shadow: var(--glow); }
+
     textarea.query-input {
       width: 100%; background: var(--bg);
       border: 1px solid var(--border); color: var(--green);
@@ -676,6 +702,15 @@
         <option value="ANALYSIS">ANALYSIS</option>
       </select>
     </div>
+    <div class="tester-row">
+      <label class="tester-label" for="tester-id-input">TESTER ID</label>
+      <input
+        type="text"
+        class="tester-id-input"
+        id="tester-id-input"
+        placeholder="Enter your name or code"
+      />
+    </div>
     <textarea class="query-input" id="query-input" rows="4"
       placeholder="Enter query for MAGI deliberation... (Ctrl+Enter to submit)"></textarea>
     <div class="query-footer">
@@ -942,6 +977,7 @@
 
       const rows = data.entries.map(e => {
         const ts      = e.timestamp ? e.timestamp.replace('T', ' ').slice(0, 19) : '—';
+        const tester  = e.testerId ? e.testerId.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 'ANONYMOUS';
         const dur     = e.durationMs != null ? (e.durationMs / 1000).toFixed(1) + 's' : '—';
         const vc      = (e.consensus || 'abstain').toLowerCase();
         const escFlag = e.escalate ? '<span class="audit-escalate">⚠</span>' : '';
@@ -950,6 +986,7 @@
         const mode    = e.mode || '—';
         return `<tr>
           <td class="audit-ts">${ts}</td>
+          <td style="white-space:nowrap;color:var(--green-dim);font-size:10px">${tester}</td>
           <td class="audit-query-cell" title="${query}">${query}</td>
           <td style="white-space:nowrap;color:var(--green-dim);font-size:10px">${mode}</td>
           <td class="audit-consensus ${vc}">${e.consensus || '—'} ${escFlag}</td>
@@ -963,6 +1000,7 @@
           <table class="audit-table">
             <thead><tr>
               <th>TIMESTAMP (UTC)</th>
+              <th>TESTER</th>
               <th>QUERY</th>
               <th>MODE</th>
               <th>CONSENSUS</th>
@@ -1020,6 +1058,22 @@
 
   /* ── Char counter ── */
   const queryInput = document.getElementById('query-input');
+  const testerIdInput = document.getElementById('tester-id-input');
+  const TESTER_ID_STORAGE_KEY = 'magiTesterId';
+
+  try {
+    const savedTesterId = localStorage.getItem(TESTER_ID_STORAGE_KEY);
+    if (savedTesterId) {
+      testerIdInput.value = savedTesterId;
+    }
+  } catch {}
+
+  testerIdInput.addEventListener('input', () => {
+    try {
+      localStorage.setItem(TESTER_ID_STORAGE_KEY, testerIdInput.value);
+    } catch {}
+  });
+
   queryInput.addEventListener('input', () => {
     document.getElementById('char-count').textContent =
       queryInput.value.length + ' CHARACTERS';
@@ -1357,6 +1411,7 @@
   async function submitQuery() {
     const query = queryInput.value.trim();
     const mode  = document.getElementById('mode-select').value;
+    const testerId = (testerIdInput.value || '').trim() || 'ANONYMOUS';
     if (!query) { queryInput.focus(); return; }
 
     const btn = document.getElementById('submit-btn');
@@ -1376,7 +1431,7 @@
       const res = await fetch('https://api.trymagi.tech/api/deliberate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, mode }),
+        body: JSON.stringify({ query, mode, testerId }),
       });
 
       if (!res.ok) {
@@ -1398,6 +1453,7 @@
         timestamp: new Date().toISOString(),
         query,
         mode,
+        testerId,
         result: data,
       };
       showExportButton();
