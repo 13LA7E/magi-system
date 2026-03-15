@@ -672,7 +672,7 @@
   async function fetchAuditLog() {
     const body = document.getElementById('audit-body');
     try {
-      const res = await fetch('https://api.trymagi.tech/api/audit');
+      const res = await fetch('http://api.trymagi.tech/api/audit');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
 
@@ -736,7 +736,7 @@
   /* ── Daily query counter ── */
   async function fetchDailyCount() {
     try {
-      const res = await fetch('https://api.trymagi.tech/health');
+      const res = await fetch('http://api.trymagi.tech/health');
       if (!res.ok) return;
       const data = await res.json();
       const used      = data.queriesUsedToday      ?? 0;
@@ -1019,7 +1019,7 @@
       '<div class="synthesis-placeholder">AWAITING UNIT RESPONSES...</div>';
 
     try {
-      const res = await fetch('https://api.trymagi.tech/api/deliberate', {
+      const res = await fetch('http://api.trymagi.tech/api/deliberate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, mode }),
