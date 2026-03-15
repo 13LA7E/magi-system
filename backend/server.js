@@ -219,14 +219,14 @@ app.use((err, req, res, next) => {
   res.status(500).json({ status: 'error', message: 'Internal server error' });
 });
 
-// const sslOptions = {
-//   key: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/privkey.pem'),
-//   cert: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/fullchain.pem')
-// };
+const sslOptions = {
+  key: fs.readFileSync('/etc/ssl/cloudflare-key.pem'),
+  cert: fs.readFileSync('/etc/ssl/cloudflare-cert.pem')
+};
 
-// https.createServer(sslOptions, app).listen(443, () => {
-//   console.log('MAGI backend running on HTTPS port 443');
-// });
+https.createServer(sslOptions, app).listen(443, () => {
+  console.log('MAGI backend running on HTTPS port 443');
+});
 
 app.listen(3001, () => {
   console.log('MAGI backend running on HTTP port 3001');
