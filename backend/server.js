@@ -1,9 +1,9 @@
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
 const fs = require('fs');
-const path = require('path');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
 const { getDailyCount, logDeliberation, getRecentLogs, DAILY_LIMIT } = require('./auditLog');
@@ -38,6 +38,8 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, '../docs')));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../docs/index.html'));
