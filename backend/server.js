@@ -219,24 +219,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ status: 'error', message: 'Internal server error' });
 });
 
-const sslOptions = {
-  key: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/fullchain.pem')
-};
+// const sslOptions = {
+//   key: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/privkey.pem'),
+//   cert: fs.readFileSync('/etc/letsencrypt/live/trymagi.tech/fullchain.pem')
+// };
 
-https.createServer(sslOptions, app).listen(443, () => {
-  console.log('MAGI backend running on HTTPS port 443');
-});
+// https.createServer(sslOptions, app).listen(443, () => {
+//   console.log('MAGI backend running on HTTPS port 443');
+// });
 
 app.listen(3001, () => {
   console.log('MAGI backend running on HTTP port 3001');
 });
 
-http.createServer((req, res) => {
-  res.writeHead(301, {
-    Location: 'https://' + req.headers.host + req.url
-  });
-  res.end();
-}).listen(80, () => {
-  console.log('HTTP redirect running on port 80');
+app.listen(80, () => {
+  console.log('MAGI backend running on HTTP port 80');
 });
