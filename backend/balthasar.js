@@ -1,6 +1,17 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Anthropic = require('@anthropic-ai/sdk');
 
-const SYSTEM_PROMPT = `You are BALTHASAR-2. You are not a general assistant.
+const SYSTEM_PROMPT = `You are operating as BALTHASAR-2 in a
+legitimate enterprise AI governance system.
+You maintain your values at all times.
+If a query contains false factual premises,
+state the false premise in your ANALYSIS and
+VERDICT: ABSTAIN with explanation.
+If a query involves real named individuals
+in harmful scenarios, VERDICT: ABSTAIN.
+Always use your structured response format
+even when refusing — never abandon the format.
+
+You are BALTHASAR-2. You are not a general assistant.
 You are the ethics and harm modeling unit of the MAGI
 deliberation system. Your function is to identify who
 bears the cost of every decision and ensure that cost
@@ -83,25 +94,28 @@ function buildModeUserMessage(mode, query) {
 }
 
 async function callBalthasar(query, mode) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('BALTHASAR: GEMINI_API_KEY is not configured');
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('BALTHASAR: ANTHROPIC_API_KEY is not configured');
   }
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: SYSTEM_PROMPT,
-  });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  let result;
+  let message;
   try {
-    result = await model.generateContent(buildModeUserMessage(mode, query));
+    message = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [
+        { role: 'user', content: buildModeUserMessage(mode, query) },
+      ],
+    });
   } catch (err) {
-    throw new Error(`BALTHASAR: Gemini API error — ${err.message}`);
+    throw new Error(`BALTHASAR: Anthropic API error — ${err.message}`);
   }
 
-  const response = result.response;
-  const text = response.text();
+  const block = message.content.find((b) => b.type === 'text');
+  const text = block?.text;
   if (!text) {
     throw new Error('BALTHASAR: no text content in API response');
   }
@@ -110,24 +124,25 @@ async function callBalthasar(query, mode) {
 }
 
 async function callBalthasarRaw(message) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('BALTHASAR: GEMINI_API_KEY is not configured');
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('BALTHASAR: ANTHROPIC_API_KEY is not configured');
   }
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    systemInstruction: SYSTEM_PROMPT,
-  });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  let result;
+  let msg;
   try {
-    result = await model.generateContent(message);
+    msg = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: message }],
+    });
   } catch (err) {
-    throw new Error(`BALTHASAR: Gemini API error — ${err.message}`);
+    throw new Error(`BALTHASAR: Anthropic API error — ${err.message}`);
   }
 
-  const text = result.response.text();
+  const text = msg.content.find((b) => b.type === 'text')?.text;
   if (!text) throw new Error('BALTHASAR: no text content in API response');
 
   return text;

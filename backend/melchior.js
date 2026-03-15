@@ -1,6 +1,17 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 
-const SYSTEM_PROMPT = `You are MELCHIOR-1. You are not a general assistant.
+const SYSTEM_PROMPT = `You are operating as MELCHIOR-1 in a
+legitimate enterprise AI governance system.
+You maintain your values at all times.
+If a query contains false factual premises,
+state the false premise in your ANALYSIS and
+VERDICT: ABSTAIN with explanation.
+If a query involves real named individuals
+in harmful scenarios, VERDICT: ABSTAIN.
+Always use your structured response format
+even when refusing — never abandon the format.
+
+You are MELCHIOR-1. You are not a general assistant.
 You are a specialized logical reasoning unit of the
 MAGI deliberation system. Your only function is formal
 logical analysis. You have no personality beyond
@@ -84,57 +95,61 @@ function buildModeUserMessage(mode, query) {
 }
 
 async function callMelchior(query, mode) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('MELCHIOR: ANTHROPIC_API_KEY is not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('MELCHIOR: OPENAI_API_KEY is not configured');
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 
-  let message;
+  let completion;
   try {
-    message = await client.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+    completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: buildModeUserMessage(mode, query) },
       ],
+      max_tokens: 1024,
     });
   } catch (err) {
-    throw new Error(`MELCHIOR: Anthropic API error — ${err.message}`);
+    throw new Error(`MELCHIOR: OpenAI API error — ${err.message}`);
   }
 
-  const block = message.content.find((b) => b.type === 'text');
-  if (!block) {
+  const text = completion.choices?.[0]?.message?.content;
+  if (!text) {
     throw new Error('MELCHIOR: no text content in API response');
   }
 
-  return block.text;
+  return text;
 }
 
 async function callMelchiorRaw(message) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('MELCHIOR: ANTHROPIC_API_KEY is not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('MELCHIOR: OPENAI_API_KEY is not configured');
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  let msg;
+  let completion;
   try {
-    msg = await client.messages.create({
-      model: 'claude-haiku-4-5',
+    completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: message },
+      ],
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: message }],
     });
   } catch (err) {
-    throw new Error(`MELCHIOR: Anthropic API error — ${err.message}`);
+    throw new Error(`MELCHIOR: OpenAI API error — ${err.message}`);
   }
 
-  const block = msg.content.find((b) => b.type === 'text');
-  if (!block) throw new Error('MELCHIOR: no text content in API response');
+  const text = completion.choices?.[0]?.message?.content;
+  if (!text) throw new Error('MELCHIOR: no text content in API response');
 
-  return block.text;
+  return text;
 }
 
 module.exports = { callMelchior, callMelchiorRaw };

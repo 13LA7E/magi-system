@@ -53,8 +53,8 @@ app.get('/health', async (req, res, next) => {
       status: 'ok',
       units: ['melchior', 'balthasar', 'casper'],
       providers: {
-        melchior: 'Anthropic',
-        balthasar: 'Google',
+        melchior: 'OpenAI',
+        balthasar: 'Anthropic',
         casper: 'OpenAI',
       },
       queriesUsedToday: used,
