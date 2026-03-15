@@ -1,6 +1,6 @@
-const { callMelchior } = require('./melchior');
-const { callBalthasar } = require('./balthasar');
-const { callCasper } = require('./casper');
+const { callMelchior, callMelchiorRaw } = require('./melchior');
+const { callBalthasar, callBalthasarRaw } = require('./balthasar');
+const { callCasper, callCasperRaw } = require('./casper');
 
 // Matches any line containing APPROVED / REJECTED / ABSTAIN (case-insensitive),
 // including variants like CONDITIONAL APPROVAL, PARTIAL APPROVAL, etc.
@@ -92,6 +92,72 @@ function computeConsensus(units) {
   return { consensus, weightedScore };
 }
 
+const ASSUMPTION_RE = /CRITICAL ASSUMPTION[:\s]+([\s\S]+?)(?=WHAT WOULD CHANGE|VERDICT|$)/i;
+
+function extractAssumption(text) {
+  if (!text || typeof text !== 'string') return '(not stated)';
+  const match = text.match(ASSUMPTION_RE);
+  if (!match || !match[1]) return '(not stated)';
+  return match[1].trim().split('\n')[0].trim() || '(not stated)';
+}
+
+function parseStage2Response(text) {
+  const decisionMatch = text.match(/DECISION\s*:\s*(UPDATE|HOLD)/i);
+  const verdictMatch = text.match(VERDICT_LINE_RE);
+  const confidenceMatch = text.match(CONFIDENCE_RE);
+
+  const decision = decisionMatch ? decisionMatch[1].toUpperCase() : 'HOLD';
+
+  let verdict = 'ABSTAIN';
+  if (verdictMatch) {
+    const raw = verdictMatch[1].toUpperCase();
+    if (raw === 'APPROVED') verdict = 'APPROVED';
+    else if (raw === 'REJECTED') verdict = 'REJECTED';
+    else verdict = 'ABSTAIN';
+  }
+
+  const rawConf = confidenceMatch ? (confidenceMatch[1] ?? confidenceMatch[2]) : null;
+  const confidence = rawConf !== null ? Math.min(100, parseInt(rawConf, 10)) : 50;
+
+  return { decision, verdict, confidence };
+}
+
+function buildStage2Message(query, ownName, ownResponse, assumptions) {
+  const nameLabels = {
+    melchior:  "MELCHIOR's",
+    balthasar: "BALTHASAR's",
+    casper:    "CASPER's",
+  };
+
+  const assumptionLines = ['melchior', 'balthasar', 'casper'].map((name) => {
+    const label = nameLabels[name];
+    const assumption = assumptions[name];
+    return name === ownName
+      ? `${label} critical assumption (YOUR assumption): ${assumption}`
+      : `${label} critical assumption: ${assumption}`;
+  }).join('\n');
+
+  return [
+    'STAGE 2 - ASSUMPTION EXCHANGE',
+    '',
+    `Original query: ${query}`,
+    '',
+    `Your Stage 1 analysis: ${ownResponse}`,
+    '',
+    assumptionLines,
+    '',
+    'You may now UPDATE or HOLD your verdict.',
+    'If you update, explain specifically which assumption from another unit changed your reasoning.',
+    'If you hold, explain why the other assumptions do not change your conclusion.',
+    '',
+    'Your response must follow this exact structure:',
+    'DECISION: [UPDATE/HOLD]',
+    'REASONING: [Why you are updating or holding]',
+    'VERDICT: [APPROVED/REJECTED/ABSTAIN]',
+    'CONFIDENCE: [0-100]%',
+  ].join('\n');
+}
+
 async function callUnit(name, fn, query, mode) {
   const start = Date.now();
   try {
@@ -121,7 +187,6 @@ async function runDeliberation(query, mode) {
         reject(new Error('Unit timed out after 30 seconds'));
       }, 30000);
     });
-
     return Promise.race([unitCallPromise, timeoutPromise]).finally(() => {
       clearTimeout(timeoutId);
     });
@@ -130,23 +195,16 @@ async function runDeliberation(query, mode) {
   async function callUnitSafely(name, fn) {
     const unitStart = Date.now();
     try {
-      console.log(`[${name}] Calling API...`);
+      console.log(`[${name}] Stage 1 calling API...`);
       const response = await withUnitTimeout(fn(query, mode));
       const elapsed = Date.now() - unitStart;
-      console.log(`[${name}] Responded in ${elapsed}ms`);
-
+      console.log(`[${name}] Stage 1 responded in ${elapsed}ms`);
       const parsed = parseResponse(response);
-      console.log(`[${name}] parsed → verdict: ${parsed.verdict}, confidence: ${parsed.confidence}%`);
-
-      return {
-        response,
-        verdict: parsed.verdict,
-        confidence: parsed.confidence,
-        unavailable: false,
-      };
+      console.log(`[${name}] Stage 1 → verdict: ${parsed.verdict}, confidence: ${parsed.confidence}%`);
+      return { response, verdict: parsed.verdict, confidence: parsed.confidence, unavailable: false };
     } catch (err) {
       const elapsed = Date.now() - unitStart;
-      console.error(`[${name}] Failed after ${elapsed}ms: ${err.message}`);
+      console.error(`[${name}] Stage 1 failed after ${elapsed}ms: ${err.message}`);
       return {
         response: `UNIT UNAVAILABLE - API error: ${err.message}`,
         verdict: 'ABSTAIN',
@@ -156,70 +214,93 @@ async function runDeliberation(query, mode) {
     }
   }
 
-  const [melchiorResult, balthasarResult, casperResult] = await Promise.all([
+  async function callUnitStage2Safely(name, fn, message) {
+    const unitStart = Date.now();
+    try {
+      console.log(`[${name}] Stage 2 calling API...`);
+      const response = await withUnitTimeout(fn(message));
+      const elapsed = Date.now() - unitStart;
+      console.log(`[${name}] Stage 2 responded in ${elapsed}ms`);
+      const parsed = parseStage2Response(response);
+      console.log(`[${name}] Stage 2 → decision: ${parsed.decision}, verdict: ${parsed.verdict}, confidence: ${parsed.confidence}%`);
+      return { response, decision: parsed.decision, verdict: parsed.verdict, confidence: parsed.confidence, unavailable: false };
+    } catch (err) {
+      const elapsed = Date.now() - unitStart;
+      console.error(`[${name}] Stage 2 failed after ${elapsed}ms: ${err.message}`);
+      return {
+        response: `UNIT UNAVAILABLE - API error: ${err.message}`,
+        decision: 'HOLD',
+        verdict: 'ABSTAIN',
+        confidence: 0,
+        unavailable: true,
+      };
+    }
+  }
+
+  // ── STAGE 1: BLIND PARALLEL ──────────────────────────────────────────────
+  const [melchiorS1, balthasarS1, casperS1] = await Promise.all([
     callUnitSafely('MELCHIOR', callMelchior),
     callUnitSafely('BALTHASAR', callBalthasar),
     callUnitSafely('CASPER', callCasper),
   ]);
 
-  const elapsed = Date.now() - start;
-  console.log(`[MAGI] All units responded in ${elapsed}ms`);
-
-  const melchiorParsed = {
-    response: melchiorResult.response,
-    verdict: melchiorResult.verdict,
-    confidence: melchiorResult.confidence,
-    unavailable: melchiorResult.unavailable,
-  };
-  const balthasarParsed = {
-    response: balthasarResult.response,
-    verdict: balthasarResult.verdict,
-    confidence: balthasarResult.confidence,
-    unavailable: balthasarResult.unavailable,
-  };
-  const casperParsed = {
-    response: casperResult.response,
-    verdict: casperResult.verdict,
-    confidence: casperResult.confidence,
-    unavailable: casperResult.unavailable,
-  };
-
-  console.log(`[MELCHIOR]  parsed → verdict: ${melchiorParsed.verdict}, confidence: ${melchiorParsed.confidence}%`);
-  console.log(`[BALTHASAR] parsed → verdict: ${balthasarParsed.verdict}, confidence: ${balthasarParsed.confidence}%`);
-  console.log(`[CASPER]    parsed → verdict: ${casperParsed.verdict}, confidence: ${casperParsed.confidence}%`);
+  const s1Elapsed = Date.now() - start;
+  console.log(`[MAGI] Stage 1 complete in ${s1Elapsed}ms`);
 
   const unavailableUnits = [];
-  if (melchiorParsed.unavailable) unavailableUnits.push('MELCHIOR');
-  if (balthasarParsed.unavailable) unavailableUnits.push('BALTHASAR');
-  if (casperParsed.unavailable) unavailableUnits.push('CASPER');
+  if (melchiorS1.unavailable) unavailableUnits.push('MELCHIOR');
+  if (balthasarS1.unavailable) unavailableUnits.push('BALTHASAR');
+  if (casperS1.unavailable) unavailableUnits.push('CASPER');
   const degraded = unavailableUnits.length === 1;
 
   if (unavailableUnits.length >= 2) {
     console.error('[MAGI] Insufficient units available for deliberation');
     return {
       error: 'Insufficient units available for deliberation',
-      melchior: melchiorParsed,
-      balthasar: balthasarParsed,
-      casper: casperParsed,
+      stage1: { melchior: melchiorS1, balthasar: balthasarS1, casper: casperS1 },
+      stage2: null,
+      assumptions: null,
       degraded: true,
       unavailableUnits,
     };
   }
 
-  const units = [melchiorParsed, balthasarParsed, casperParsed];
-  const { consensus, weightedScore, reducedConfidence, singleVoteDirection } = computeConsensus(units);
+  // Extract critical assumptions from Stage 1 responses
+  const assumptions = {
+    melchior:  extractAssumption(melchiorS1.response),
+    balthasar: extractAssumption(balthasarS1.response),
+    casper:    extractAssumption(casperS1.response),
+  };
 
+  console.log(`[MAGI] Assumptions — M: "${assumptions.melchior}" | B: "${assumptions.balthasar}" | C: "${assumptions.casper}"`);
+
+  // ── STAGE 2: ASSUMPTION EXCHANGE ─────────────────────────────────────────
+  const stage2Start = Date.now();
+  const [melchiorS2, balthasarS2, casperS2] = await Promise.all([
+    callUnitStage2Safely('MELCHIOR',  callMelchiorRaw,  buildStage2Message(query, 'melchior',  melchiorS1.response,  assumptions)),
+    callUnitStage2Safely('BALTHASAR', callBalthasarRaw, buildStage2Message(query, 'balthasar', balthasarS1.response, assumptions)),
+    callUnitStage2Safely('CASPER',    callCasperRaw,    buildStage2Message(query, 'casper',    casperS1.response,    assumptions)),
+  ]);
+
+  const s2Elapsed = Date.now() - stage2Start;
+  console.log(`[MAGI] Stage 2 complete in ${s2Elapsed}ms`);
+
+  // Final consensus uses Stage 2 verdicts
+  const finalUnits = [melchiorS2, balthasarS2, casperS2];
+  const { consensus, weightedScore, reducedConfidence, singleVoteDirection } = computeConsensus(finalUnits);
   const escalate = consensus === 'DEADLOCK' || consensus === 'SPLIT';
-  console.log(`[MAGI] Consensus: ${consensus} (weighted delta: ${weightedScore}, escalate: ${escalate})`);
+
+  const totalElapsed = Date.now() - start;
+  console.log(`[MAGI] Full deliberation complete in ${totalElapsed}ms — consensus: ${consensus} (delta: ${weightedScore}, escalate: ${escalate})`);
 
   if (typeof reducedConfidence === 'number' && singleVoteDirection) {
-    console.log(`[MAGI] Single-vote determination: ${singleVoteDirection} at reduced confidence ${reducedConfidence}%`);
+    console.log(`[MAGI] Single-vote: ${singleVoteDirection} at reduced confidence ${reducedConfidence}%`);
   }
 
-  const response = {
-    melchior: melchiorParsed,
-    balthasar: balthasarParsed,
-    casper: casperParsed,
+  const result = {
+    stage1: { melchior: melchiorS1, balthasar: balthasarS1, casper: casperS1 },
+    stage2: { melchior: melchiorS2, balthasar: balthasarS2, casper: casperS2 },
+    assumptions,
     consensus,
     weightedScore,
     escalate,
@@ -227,14 +308,10 @@ async function runDeliberation(query, mode) {
     unavailableUnits,
   };
 
-  if (typeof reducedConfidence === 'number') {
-    response.consensusConfidence = reducedConfidence;
-  }
-  if (singleVoteDirection) {
-    response.singleVoteDirection = singleVoteDirection;
-  }
+  if (typeof reducedConfidence === 'number') result.consensusConfidence = reducedConfidence;
+  if (singleVoteDirection) result.singleVoteDirection = singleVoteDirection;
 
-  return response;
+  return result;
 }
 
 module.exports = { runDeliberation };

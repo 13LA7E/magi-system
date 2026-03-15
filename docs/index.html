@@ -519,6 +519,35 @@
       .synthesis-content { flex-direction: column; gap: 22px; }
       .synth-divider { width: 60%; height: 1px; }
     }
+
+    /* ─── Stage 2 Protocol ─── */
+    .stage-header {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px; font-weight: 700; letter-spacing: 4px;
+      color: var(--green-dim); border-top: 1px solid var(--border);
+      padding: 18px 0 12px; margin-top: 8px; text-align: center;
+    }
+    .stage-tag {
+      font-size: 9px; letter-spacing: 2px; color: var(--green-dim);
+      background: rgba(0,255,65,0.08); border: 1px solid var(--border);
+      padding: 1px 5px; border-radius: 2px; vertical-align: middle; margin-left: 6px;
+    }
+    .decision-badge {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px; font-weight: 700; letter-spacing: 2px;
+      padding: 2px 8px; border-radius: 2px; border: 1px solid var(--border);
+    }
+    .decision-badge.updated {
+      color: var(--amber); border-color: var(--amber);
+      background: rgba(255,170,0,0.08); text-shadow: 0 0 8px var(--amber);
+    }
+    .decision-badge.hold { color: var(--green-dim); }
+    .unit-panel.verdict-updated {
+      border-color: rgba(255,170,0,0.55);
+      box-shadow: 0 0 18px rgba(255,170,0,0.12);
+    }
+    .stage-section { display: none; }
+    .stage-section.visible { display: block; }
   </style>
 </head>
 <body>
@@ -559,6 +588,7 @@
   </section>
 
   <!-- Three unit panels -->
+  <div class="stage-header">STAGE 1 — BLIND ANALYSIS</div>
   <div class="panels-grid">
 
     <!-- MELCHIOR-1 -->
@@ -634,6 +664,86 @@
     </div>
 
   </div><!-- /panels-grid -->
+
+  <!-- Stage 2 -->
+  <div class="stage-section" id="stage2-section">
+    <div class="stage-header">STAGE 2 — ASSUMPTION EXCHANGE</div>
+    <div class="panels-grid">
+
+      <!-- MELCHIOR-1 S2 -->
+      <div class="unit-panel" id="panel-melchior-s2">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">MELCHIOR-1 <span class="stage-tag">S2</span></div>
+            <div class="panel-sub">POST-EXCHANGE VERDICT</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="decision-badge" id="melchior-s2-decision">—</span>
+            <span class="panel-status" id="melchior-s2-status">STANDBY</span>
+          </div>
+        </div>
+        <div class="panel-body" id="melchior-s2-body">
+          <div class="panel-placeholder">AWAITING STAGE 2</div>
+        </div>
+        <div class="panel-footer" id="melchior-s2-footer">
+          <div class="verdict-badge" id="melchior-s2-badge">—</div>
+          <div class="conf-wrapper">
+            <div class="conf-label"><span>CONFIDENCE</span><span id="melchior-s2-conf-pct">—</span></div>
+            <div class="conf-bar"><div class="conf-fill" id="melchior-s2-conf-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BALTHASAR-2 S2 -->
+      <div class="unit-panel" id="panel-balthasar-s2">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">BALTHASAR-2 <span class="stage-tag">S2</span></div>
+            <div class="panel-sub">POST-EXCHANGE VERDICT</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="decision-badge" id="balthasar-s2-decision">—</span>
+            <span class="panel-status" id="balthasar-s2-status">STANDBY</span>
+          </div>
+        </div>
+        <div class="panel-body" id="balthasar-s2-body">
+          <div class="panel-placeholder">AWAITING STAGE 2</div>
+        </div>
+        <div class="panel-footer" id="balthasar-s2-footer">
+          <div class="verdict-badge" id="balthasar-s2-badge">—</div>
+          <div class="conf-wrapper">
+            <div class="conf-label"><span>CONFIDENCE</span><span id="balthasar-s2-conf-pct">—</span></div>
+            <div class="conf-bar"><div class="conf-fill" id="balthasar-s2-conf-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CASPER-3 S2 -->
+      <div class="unit-panel" id="panel-casper-s2">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">CASPER-3 <span class="stage-tag">S2</span></div>
+            <div class="panel-sub">POST-EXCHANGE VERDICT</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="decision-badge" id="casper-s2-decision">—</span>
+            <span class="panel-status" id="casper-s2-status">STANDBY</span>
+          </div>
+        </div>
+        <div class="panel-body" id="casper-s2-body">
+          <div class="panel-placeholder">AWAITING STAGE 2</div>
+        </div>
+        <div class="panel-footer" id="casper-s2-footer">
+          <div class="verdict-badge" id="casper-s2-badge">—</div>
+          <div class="conf-wrapper">
+            <div class="conf-label"><span>CONFIDENCE</span><span id="casper-s2-conf-pct">—</span></div>
+            <div class="conf-bar"><div class="conf-fill" id="casper-s2-conf-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /stage2-section -->
 
   <!-- Escalation -->
   <div class="escalation-panel" id="escalation-panel">
@@ -799,10 +909,21 @@
 
   function buildTranscriptText(entry) {
     const result = entry.result;
-    const melchior = result.melchior || {};
-    const balthasar = result.balthasar || {};
-    const casper = result.casper || {};
+    const s1 = result.stage1 || {};
+    const s2 = result.stage2 || {};
+    const assumptions = result.assumptions || {};
     const escalationRequired = result.escalate ? 'yes' : 'no';
+
+    function unitBlock(label, data) {
+      if (!data) return '';
+      const lines = [
+        label,
+        `Verdict: ${data.verdict || 'ABSTAIN'} | Confidence: ${data.confidence ?? 0}%`,
+      ];
+      if (data.decision) lines.push(`Decision: ${data.decision}`);
+      lines.push(data.response || '');
+      return lines.join('\n');
+    }
 
     const lines = [
       '--- MAGI DELIBERATION TRANSCRIPT ---',
@@ -810,19 +931,26 @@
       `Query: ${entry.query}`,
       `Mode: ${entry.mode}`,
       '',
-      'MELCHIOR-1 [Anthropic]',
-      `Verdict: ${melchior.verdict || 'ABSTAIN'} | Confidence: ${melchior.confidence ?? 0}%`,
-      melchior.response || '',
+      '── STAGE 1: BLIND ANALYSIS ──',
       '',
-      'BALTHASAR-2 [Google]',
-      `Verdict: ${balthasar.verdict || 'ABSTAIN'} | Confidence: ${balthasar.confidence ?? 0}%`,
-      balthasar.response || '',
+      unitBlock('MELCHIOR-1 [Anthropic]', s1.melchior),
+      `Critical Assumption: ${assumptions.melchior || '(none)'}`,
       '',
-      'CASPER-3 [OpenAI]',
-      `Verdict: ${casper.verdict || 'ABSTAIN'} | Confidence: ${casper.confidence ?? 0}%`,
-      casper.response || '',
+      unitBlock('BALTHASAR-2 [Google]', s1.balthasar),
+      `Critical Assumption: ${assumptions.balthasar || '(none)'}`,
       '',
-      'SYNTHESIS',
+      unitBlock('CASPER-3 [OpenAI]', s1.casper),
+      `Critical Assumption: ${assumptions.casper || '(none)'}`,
+      '',
+      '── STAGE 2: ASSUMPTION EXCHANGE ──',
+      '',
+      unitBlock('MELCHIOR-1 [Anthropic] S2', s2.melchior),
+      '',
+      unitBlock('BALTHASAR-2 [Google] S2', s2.balthasar),
+      '',
+      unitBlock('CASPER-3 [OpenAI] S2', s2.casper),
+      '',
+      '── SYNTHESIS ──',
       `Consensus: ${result.consensus || ''}`,
       `Weighted Delta: ${result.weightedScore ?? 0}`,
       `Escalation Required: ${escalationRequired}`,
@@ -926,6 +1054,44 @@
     }));
   }
 
+  function populateStage2Panel(unit, s2data) {
+    const panel    = document.getElementById('panel-' + unit + '-s2');
+    const status   = document.getElementById(unit + '-s2-status');
+    const body     = document.getElementById(unit + '-s2-body');
+    const footer   = document.getElementById(unit + '-s2-footer');
+    const badge    = document.getElementById(unit + '-s2-badge');
+    const decBadge = document.getElementById(unit + '-s2-decision');
+    const pct      = document.getElementById(unit + '-s2-conf-pct');
+    const fill     = document.getElementById(unit + '-s2-conf-fill');
+
+    const vc = vcClass(s2data.verdict);
+    const changed = s2data.decision === 'UPDATE';
+
+    panel.className = 'unit-panel verdict-' + vc + (changed ? ' verdict-updated' : '');
+    status.textContent = 'COMPLETE';
+
+    const display = s2data.response
+      .replace(/\nVERDICT:.*$/m, '')
+      .replace(/\nCONFIDENCE:.*$/m, '')
+      .trim();
+    body.style.animation = 'fade-in 0.4s ease-in';
+    body.textContent = display;
+
+    badge.textContent = s2data.verdict || 'ABSTAIN';
+    badge.className = 'verdict-badge ' + vc;
+
+    decBadge.textContent = s2data.decision || 'HOLD';
+    decBadge.className = 'decision-badge ' + (changed ? 'updated' : 'hold');
+
+    pct.textContent = s2data.confidence + '%';
+    footer.classList.add('visible');
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      fill.style.width = s2data.confidence + '%';
+      fill.className = 'conf-fill ' + confClass(s2data.confidence);
+    }));
+  }
+
   function renderSynthesis(result) {
     const vc         = vcClass(result.consensus);
     const isInsufficientContext = result.consensus === 'INSUFFICIENT_CONTEXT';
@@ -944,10 +1110,11 @@
     synthPanel.classList.toggle('split-mode', isSplit && !isDeadlock);
     synthPanel.classList.toggle('insufficient-mode', isInsufficientContext);
 
+    const s2 = result.stage2 || {};
     const units = [
-      { name: 'MELCHIOR-1',  data: result.melchior  },
-      { name: 'BALTHASAR-2', data: result.balthasar },
-      { name: 'CASPER-3',    data: result.casper    },
+      { name: 'MELCHIOR-1',  data: s2.melchior  || result.melchior  || {} },
+      { name: 'BALTHASAR-2', data: s2.balthasar || result.balthasar || {} },
+      { name: 'CASPER-3',    data: s2.casper    || result.casper    || {} },
     ];
 
     const tallyRows = units.map(u => {
@@ -1015,6 +1182,7 @@
     setStatus('DELIBERATION IN PROGRESS...');
 
     ['melchior', 'balthasar', 'casper'].forEach(setLoadingState);
+    document.getElementById('stage2-section').classList.remove('visible');
     document.getElementById('synthesis-body').innerHTML =
       '<div class="synthesis-placeholder">AWAITING UNIT RESPONSES...</div>';
 
@@ -1032,7 +1200,11 @@
 
       const data = await res.json();
 
-      ['melchior', 'balthasar', 'casper'].forEach(u => populatePanel(u, data[u]));
+      ['melchior', 'balthasar', 'casper'].forEach(u => populatePanel(u, (data.stage1 || data)[u] || {}));
+      if (data.stage2) {
+        ['melchior', 'balthasar', 'casper'].forEach(u => populateStage2Panel(u, data.stage2[u]));
+        document.getElementById('stage2-section').classList.add('visible');
+      }
       renderSynthesis(data);
 
       latestTranscript = {

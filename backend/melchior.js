@@ -112,4 +112,29 @@ async function callMelchior(query, mode) {
   return block.text;
 }
 
-module.exports = { callMelchior };
+async function callMelchiorRaw(message) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('MELCHIOR: ANTHROPIC_API_KEY is not configured');
+  }
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  let msg;
+  try {
+    msg = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: message }],
+    });
+  } catch (err) {
+    throw new Error(`MELCHIOR: Anthropic API error — ${err.message}`);
+  }
+
+  const block = msg.content.find((b) => b.type === 'text');
+  if (!block) throw new Error('MELCHIOR: no text content in API response');
+
+  return block.text;
+}
+
+module.exports = { callMelchior, callMelchiorRaw };

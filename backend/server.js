@@ -111,15 +111,14 @@ function topUnitByVerdict(units, verdict) {
 }
 
 function buildEscalationBrief(result) {
-  const { melchior, balthasar, casper, consensus } = result;
+  const { consensus } = result;
+  const stage2 = result.stage2 || {};
+  const assumptions = result.assumptions || {};
   const units = [
-    { name: 'MELCHIOR-1', ...melchior },
-    { name: 'BALTHASAR-2', ...balthasar },
-    { name: 'CASPER-3', ...casper },
-  ].map((unit) => ({
-    ...unit,
-    assumption: extractCriticalAssumption(unit.response),
-  }));
+    { name: 'MELCHIOR-1',  ...(stage2.melchior  || {}), assumption: assumptions.melchior  || '' },
+    { name: 'BALTHASAR-2', ...(stage2.balthasar || {}), assumption: assumptions.balthasar || '' },
+    { name: 'CASPER-3',    ...(stage2.casper    || {}), assumption: assumptions.casper    || '' },
+  ];
 
   const conflictDesc = consensus === 'DEADLOCK'
     ? 'High-confidence deadlock detected.'
@@ -189,12 +188,13 @@ app.post('/api/deliberate', async (req, res, next) => {
     const result = await runDeliberation(cleanQuery, mode);
     const durationMs = Date.now() - deliberationStart;
 
+    const s2 = result.stage2 || result.stage1 || {};
     logDeliberation({
       query: cleanQuery.slice(0, 300),
       mode,
-      melchior:  { verdict: result.melchior.verdict,  confidence: result.melchior.confidence  },
-      balthasar: { verdict: result.balthasar.verdict, confidence: result.balthasar.confidence },
-      casper:    { verdict: result.casper.verdict,    confidence: result.casper.confidence    },
+      melchior:  { verdict: (s2.melchior  || {}).verdict  || 'ABSTAIN', confidence: (s2.melchior  || {}).confidence  || 0 },
+      balthasar: { verdict: (s2.balthasar || {}).verdict  || 'ABSTAIN', confidence: (s2.balthasar || {}).confidence || 0 },
+      casper:    { verdict: (s2.casper    || {}).verdict  || 'ABSTAIN', confidence: (s2.casper    || {}).confidence || 0 },
       consensus: result.consensus,
       escalate:  result.escalate,
       durationMs,

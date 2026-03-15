@@ -135,4 +135,31 @@ async function callCasper(query, mode) {
   return text;
 }
 
-module.exports = { callCasper };
+async function callCasperRaw(message) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('CASPER: OPENAI_API_KEY is not configured');
+  }
+
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  let completion;
+  try {
+    completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: message },
+      ],
+      max_tokens: 1024,
+    });
+  } catch (err) {
+    throw new Error(`CASPER: OpenAI API error — ${err.message}`);
+  }
+
+  const text = completion.choices?.[0]?.message?.content;
+  if (!text) throw new Error('CASPER: no text content in API response');
+
+  return text;
+}
+
+module.exports = { callCasper, callCasperRaw };

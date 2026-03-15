@@ -109,4 +109,28 @@ async function callBalthasar(query, mode) {
   return text;
 }
 
-module.exports = { callBalthasar };
+async function callBalthasarRaw(message) {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('BALTHASAR: GEMINI_API_KEY is not configured');
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.5-flash',
+    systemInstruction: SYSTEM_PROMPT,
+  });
+
+  let result;
+  try {
+    result = await model.generateContent(message);
+  } catch (err) {
+    throw new Error(`BALTHASAR: Gemini API error — ${err.message}`);
+  }
+
+  const text = result.response.text();
+  if (!text) throw new Error('BALTHASAR: no text content in API response');
+
+  return text;
+}
+
+module.exports = { callBalthasar, callBalthasarRaw };
