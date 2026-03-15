@@ -83,6 +83,10 @@ Your value is not in being right. It is in making sure
 the other two cannot be wrong without being challenged.`;
 
 const MODE_INSTRUCTIONS = {
+  CONSENSUS: `This deliberation is in CONSENSUS mode.
+Reason carefully and objectively.
+Your goal is to reach the most defensible verdict.
+Be precise and thorough.`,
   DEBATE: `This deliberation is in DEBATE mode.
 Be more aggressive in your reasoning.
 Challenge assumptions harder. Do not

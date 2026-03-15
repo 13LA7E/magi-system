@@ -62,6 +62,10 @@ not here to be kind. You are here to be correct.
 Logic is your only instrument. Use it without apology.`;
 
 const MODE_INSTRUCTIONS = {
+  CONSENSUS: `This deliberation is in CONSENSUS mode.
+Reason carefully and objectively.
+Your goal is to reach the most defensible verdict.
+Be precise and thorough.`,
   DEBATE: `This deliberation is in DEBATE mode.
 Be more aggressive in your reasoning.
 Challenge assumptions harder. Do not
