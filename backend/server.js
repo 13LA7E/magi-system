@@ -10,7 +10,6 @@ const { preprocessQuery } = require('./triage');
 const { connectDB, getDailyCount, logDeliberation, getRecentLogs } = require('./db');
 
 const app = express();
-const PORT = 3001;
 const DAILY_LIMIT = 100;
 
 function hasEnvValue(key) {
@@ -353,10 +352,6 @@ app.use((err, req, res, next) => {
 
 connectDB().catch((err) => {
   console.error('MongoDB connection failed:', err.message);
-});
-
-app.listen(3001, () => {
-  console.log('MAGI backend running on HTTP port 3001');
 });
 
 app.listen(80, () => {
