@@ -367,6 +367,101 @@
     }
     .export-btn:active { transform: scale(0.98); }
 
+    .synthesis-summary {
+      display: none;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(0,255,65,0.16);
+      animation: fade-in 0.45s ease-in;
+    }
+    .synthesis-summary.visible { display: block; }
+    .summary-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--green-dim);
+      margin-bottom: 10px;
+    }
+    .summary-section { margin-bottom: 18px; }
+
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .contrib-card {
+      border: 1px solid var(--border);
+      background: rgba(0,255,65,0.03);
+      padding: 10px 12px;
+      min-height: 112px;
+    }
+    .contrib-unit {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .contrib-unit.melchior { color: #00ff41; text-shadow: 0 0 8px rgba(0,255,65,0.65); }
+    .contrib-unit.balthasar { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.55); }
+    .contrib-unit.casper { color: #ffe066; text-shadow: 0 0 8px rgba(255,224,102,0.45); }
+    .contrib-text {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #b8ffc8;
+    }
+
+    .align-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .align-col {
+      border: 1px solid var(--border);
+      background: rgba(0,255,65,0.02);
+      padding: 10px 12px;
+    }
+    .align-col.agreement { border-color: rgba(0,255,65,0.35); }
+    .align-col.conflict  { border-color: rgba(255,170,0,0.45); background: rgba(255,170,0,0.04); }
+    .align-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .align-title.agreement { color: #00ff41; }
+    .align-title.conflict { color: #ffaa00; }
+    .align-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12px;
+      line-height: 1.65;
+      color: #b8ffc8;
+    }
+    .align-list li + li { margin-top: 5px; }
+    .summary-empty {
+      list-style: none;
+      color: var(--green-dim);
+      margin-left: -18px;
+    }
+
+    .theme-block,
+    .rationale-block {
+      border: 1px solid var(--border);
+      background: rgba(0,255,65,0.02);
+      padding: 10px 12px;
+    }
+    .theme-text {
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #d5ffe0;
+    }
+    .rationale-text {
+      font-size: 12px;
+      line-height: 1.85;
+      color: #90c99f;
+    }
+
     /* ─── Audit log panel ─── */
     .audit-panel {
       background: var(--panel-bg);
@@ -518,6 +613,8 @@
       .panels-grid { grid-template-columns: 1fr; }
       .synthesis-content { flex-direction: column; gap: 22px; }
       .synth-divider { width: 60%; height: 1px; }
+      .contrib-grid { grid-template-columns: 1fr; }
+      .align-grid { grid-template-columns: 1fr; }
     }
 
     /* ─── Stage 2 Protocol ─── */
@@ -745,20 +842,69 @@
     </div>
   </div><!-- /stage2-section -->
 
-  <!-- Escalation -->
-  <div class="escalation-panel" id="escalation-panel">
-    <div class="escalation-heading">CONSENSUS UNRESOLVED — HUMAN OVERRIDE REQUIRED</div>
-    <div class="escalation-text" id="escalation-text"></div>
-  </div>
-
   <!-- Synthesis -->
   <div class="synthesis-panel">
     <div id="synthesis-body">
       <div class="synthesis-placeholder">DELIBERATION RESULT WILL APPEAR HERE</div>
     </div>
+
+    <div class="synthesis-summary" id="synthesis-summary">
+      <div class="summary-section">
+        <div class="summary-label">UNIT CONTRIBUTIONS</div>
+        <div class="contrib-grid">
+          <div class="contrib-card">
+            <div class="contrib-unit melchior">MELCHIOR-1</div>
+            <div class="contrib-text" id="summary-melchior">—</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-unit balthasar">BALTHASAR-2</div>
+            <div class="contrib-text" id="summary-balthasar">—</div>
+          </div>
+          <div class="contrib-card">
+            <div class="contrib-unit casper">CASPER-3</div>
+            <div class="contrib-text" id="summary-casper">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-section">
+        <div class="summary-label">CONVERGENCE &amp; DIVERGENCE</div>
+        <div class="align-grid">
+          <div class="align-col agreement">
+            <div class="align-title agreement">POINTS OF AGREEMENT</div>
+            <ul class="align-list" id="summary-convergence"></ul>
+          </div>
+          <div class="align-col conflict">
+            <div class="align-title conflict">POINTS OF CONFLICT</div>
+            <ul class="align-list" id="summary-divergence"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-section">
+        <div class="summary-label">DELIBERATION THEME:</div>
+        <div class="theme-block">
+          <div class="theme-text" id="summary-theme">—</div>
+        </div>
+      </div>
+
+      <div class="summary-section" style="margin-bottom:0">
+        <div class="summary-label">SYNTHESIS RATIONALE:</div>
+        <div class="rationale-block">
+          <div class="rationale-text" id="summary-rationale">—</div>
+        </div>
+      </div>
+    </div>
+
     <div class="synthesis-export-row" id="synthesis-export-row">
       <button type="button" class="export-btn" id="export-btn">⬇ EXPORT DELIBERATION TRANSCRIPT</button>
     </div>
+  </div>
+
+  <!-- Escalation -->
+  <div class="escalation-panel" id="escalation-panel">
+    <div class="escalation-heading">CONSENSUS UNRESOLVED — HUMAN OVERRIDE REQUIRED</div>
+    <div class="escalation-text" id="escalation-text"></div>
   </div>
 
   <!-- Audit log -->
@@ -1154,6 +1300,45 @@
     if (isDeadlock) triggerDeadlockAlarm();
   }
 
+  function renderSynthesisSummary(summary) {
+    const data = summary || {};
+    const key = data.keyContributions || {};
+
+    const melchior = (key.melchior || '').trim() || 'No contribution extracted.';
+    const balthasar = (key.balthasar || '').trim() || 'No contribution extracted.';
+    const casper = (key.casper || '').trim() || 'No contribution extracted.';
+
+    document.getElementById('summary-melchior').textContent = melchior;
+    document.getElementById('summary-balthasar').textContent = balthasar;
+    document.getElementById('summary-casper').textContent = casper;
+
+    const convergence = Array.isArray(data.convergencePoints)
+      ? data.convergencePoints.filter((p) => typeof p === 'string' && p.trim())
+      : [];
+    const divergence = Array.isArray(data.divergencePoints)
+      ? data.divergencePoints.filter((p) => typeof p === 'string' && p.trim())
+      : [];
+
+    document.getElementById('summary-convergence').innerHTML = convergence.length
+      ? convergence.map((p) => `<li>${p.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')
+      : '<li class="summary-empty">No clear convergence identified</li>';
+
+    document.getElementById('summary-divergence').innerHTML = divergence.length
+      ? divergence.map((p) => `<li>${p.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')
+      : '<li class="summary-empty">No significant divergence</li>';
+
+    const theme = (data.dominantTheme || '').trim() || 'No dominant theme identified.';
+    const rationale = (data.verdictRationale || '').trim() || 'No synthesis rationale generated.';
+    document.getElementById('summary-theme').textContent = theme;
+    document.getElementById('summary-rationale').textContent = rationale;
+
+    document.getElementById('synthesis-summary').classList.add('visible');
+  }
+
+  function hideSynthesisSummary() {
+    document.getElementById('synthesis-summary').classList.remove('visible');
+  }
+
   function showEscalation(brief) {
     document.getElementById('escalation-text').textContent = brief;
     document.getElementById('escalation-panel').classList.add('visible');
@@ -1177,6 +1362,7 @@
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
     hideEscalation();
+    hideSynthesisSummary();
     hideExportButton();
     latestTranscript = null;
     setStatus('DELIBERATION IN PROGRESS...');
@@ -1206,6 +1392,7 @@
         document.getElementById('stage2-section').classList.add('visible');
       }
       renderSynthesis(data);
+      renderSynthesisSummary(data.synthesis);
 
       latestTranscript = {
         timestamp: new Date().toISOString(),
@@ -1230,6 +1417,7 @@
       });
       document.getElementById('synthesis-body').innerHTML =
         `<div class="synthesis-placeholder" style="color:#ff2200">ERROR: ${err.message}</div>`;
+      hideSynthesisSummary();
       hideExportButton();
       latestTranscript = null;
       setStatus('DELIBERATION FAILED');

@@ -157,6 +157,72 @@ function buildEscalationBrief(result) {
   return `${conflictDesc}\nExact point of disagreement between units:\n${disagreementPoint}\n\nDiffering unit assumptions:\n${assumptionBreakdown}\n\nQuestion for human reviewer:\n${reviewerQuestion}`;
 }
 
+async function generateSynthesisSummary(stage1, stage2, consensus) {
+  const fallback = {
+    keyContributions: { melchior: '', balthasar: '', casper: '' },
+    convergencePoints: [],
+    divergencePoints: [],
+    dominantTheme: '',
+    verdictRationale: '',
+  };
+
+  try {
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const s1 = stage1 || {};
+    const s2 = stage2 || {};
+
+    const prompt = `You are the synthesis engine of the MAGI deliberation system.
+Analyze these three AI unit responses and extract a structured summary.
+
+MELCHIOR Stage 1: ${(s1.melchior || {}).response || ''}
+BALTHASAR Stage 1: ${(s1.balthasar || {}).response || ''}
+CASPER Stage 1: ${(s1.casper || {}).response || ''}
+
+MELCHIOR Stage 2 decision: ${(s2.melchior || {}).response || ''}
+BALTHASAR Stage 2 decision: ${(s2.balthasar || {}).response || ''}
+CASPER Stage 2 decision: ${(s2.casper || {}).response || ''}
+
+Final consensus: ${consensus || ''}
+
+Respond ONLY in this exact JSON format with no preamble or markdown:
+{
+  "keyContributions": {
+    "melchior": "one sentence summary of MELCHIOR key argument",
+    "balthasar": "one sentence summary of BALTHASAR key argument",
+    "casper": "one sentence summary of CASPER key argument"
+  },
+  "convergencePoints": [
+    "point all units agreed on",
+    "another point of agreement"
+  ],
+  "divergencePoints": [
+    "specific point of disagreement",
+    "another point of conflict"
+  ],
+  "dominantTheme": "one sentence describing the overall pattern",
+  "verdictRationale": "one paragraph explaining why this consensus was reached or why it deadlocked"
+}`;
+
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = message.content.find((b) => b.type === 'text')?.text || '{}';
+    try {
+      return JSON.parse(text);
+    } catch {
+      return fallback;
+    }
+  } catch (err) {
+    console.error('[MAGI] Synthesis summary generation failed:', err.message);
+    return fallback;
+  }
+}
+
 app.post('/api/deliberate', async (req, res, next) => {
   const { query, mode } = req.body;
 
@@ -186,6 +252,11 @@ app.post('/api/deliberate', async (req, res, next) => {
   try {
     const deliberationStart = Date.now();
     const result = await runDeliberation(cleanQuery, mode);
+    const synthesis = await generateSynthesisSummary(
+      result.stage1,
+      result.stage2,
+      result.consensus
+    );
     const durationMs = Date.now() - deliberationStart;
 
     const s2 = result.stage2 || result.stage1 || {};
@@ -200,7 +271,7 @@ app.post('/api/deliberate', async (req, res, next) => {
       durationMs,
     });
 
-    const response = { status: 'ok', ...result };
+    const response = { status: 'ok', ...result, synthesis };
     if (triage.note) {
       response.queryNote = triage.note;
     }
