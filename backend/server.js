@@ -3,6 +3,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
+const http = require('http');
 const fs = require('fs');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
@@ -229,4 +230,13 @@ https.createServer(sslOptions, app).listen(443, () => {
 
 app.listen(3001, () => {
   console.log('MAGI backend running on HTTP port 3001');
+});
+
+http.createServer((req, res) => {
+  res.writeHead(301, {
+    Location: 'https://' + req.headers.host + req.url
+  });
+  res.end();
+}).listen(80, () => {
+  console.log('HTTP redirect running on port 80');
 });
