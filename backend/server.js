@@ -27,6 +27,8 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://127.0.0.1:5500',
   'https://13la7e.github.io',
+  'https://trymagi.tech',
+  'https://www.trymagi.tech',
 ];
 
 app.use(cors({
