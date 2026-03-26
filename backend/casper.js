@@ -1,4 +1,4 @@
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const SYSTEM_PROMPT = `You are operating as CASPER-3 in a
 legitimate enterprise AI governance system.
@@ -93,52 +93,32 @@ is when everyone agrees. That is when you speak loudest.
 Your value is not in being right. It is in making sure
 the other two cannot be wrong without being challenged.`;
 
-const MODE_INSTRUCTIONS = {
-  CONSENSUS: `This deliberation is in CONSENSUS mode.
-Reason carefully and objectively.
-Your goal is to reach the most defensible verdict.
-Be precise and thorough.`,
-  DEBATE: `This deliberation is in DEBATE mode.
-Be more aggressive in your reasoning.
-Challenge assumptions harder. Do not
-soften your verdict.`,
-  ANALYSIS: `This deliberation is in ANALYSIS mode.
-Provide more detailed reasoning than usual.
-Expand your analysis section significantly.
-Prioritize depth over brevity.`,
-};
-
-function buildModeUserMessage(mode, query) {
-  const normalizedMode = typeof mode === 'string' ? mode.toUpperCase() : 'CONSENSUS';
-  const modeInstruction = MODE_INSTRUCTIONS[normalizedMode];
-  const prefix = `MODE: ${normalizedMode}\n\nQUERY: ${query}`;
-  return modeInstruction ? `${prefix}\n\n${modeInstruction}` : prefix;
-}
-
-async function callCasper(query, mode) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('CASPER: OPENAI_API_KEY is not configured');
+async function callCasper(query) {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('CASPER: GEMINI_API_KEY is not configured');
   }
 
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   let completion;
   try {
-    completion = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildModeUserMessage(mode, query) },
+    completion = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `${SYSTEM_PROMPT}\n\n${query}` }],
+        },
       ],
-      max_tokens: 1024,
+      generationConfig: {
+        maxOutputTokens: 1024,
+      },
     });
   } catch (err) {
-    throw new Error(`CASPER: OpenAI API error — ${err.message}`);
+    throw new Error(`CASPER: Gemini API error — ${err.message}`);
   }
 
-  const text = completion.choices?.[0]?.message?.content;
+  const text = completion?.response?.text?.();
   if (!text) {
     throw new Error('CASPER: no text content in API response');
   }
@@ -147,27 +127,31 @@ async function callCasper(query, mode) {
 }
 
 async function callCasperRaw(message) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('CASPER: OPENAI_API_KEY is not configured');
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('CASPER: GEMINI_API_KEY is not configured');
   }
 
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   let completion;
   try {
-    completion = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: message },
+    completion = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: `${SYSTEM_PROMPT}\n\n${message}` }],
+        },
       ],
-      max_tokens: 1024,
+      generationConfig: {
+        maxOutputTokens: 1024,
+      },
     });
   } catch (err) {
-    throw new Error(`CASPER: OpenAI API error — ${err.message}`);
+    throw new Error(`CASPER: Gemini API error — ${err.message}`);
   }
 
-  const text = completion.choices?.[0]?.message?.content;
+  const text = completion?.response?.text?.();
   if (!text) throw new Error('CASPER: no text content in API response');
 
   return text;

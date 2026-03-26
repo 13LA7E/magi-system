@@ -1,66 +1,48 @@
-function stripHtmlAndScriptTags(input) {
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-    .replace(/<[^>]*>/g, ' ');
+const CURRENT_EVENTS_PATTERNS = [
+  /\b(war|conflict|invasion|attack|coup|sanction|treaty|election|protest|revolution|crisis)\b/i,
+  /\b(stock|market|inflation|recession|GDP|interest rate|crypto|bitcoin|oil price|trade war|tariff)\b/i,
+  /\b[A-Z][a-z]{2,}\s[A-Z][a-z]{2,}\b/,
+  /\b(Iran|Israel|Gaza|Ukraine|Russia|China|Taiwan|North Korea|Sudan|Syria|Yemen|Middle East|EU|NATO)\b/i,
+  /\b(current|latest|recent|now|today|this week|this month|this year|2025|2026|ongoing|happening|just|breaking)\b/i,
+  /\b(trend|viral|movement|protest|demographic|poll|survey|report)\b/i,
+  /\b(earnings|IPO|acquisition|merger|layoffs|regulation|ban|lawsuit|ruling)\b/i
+];
+
+const PERSONAL_PATTERNS = [
+  /\b(should I|should we|my|our|personally|for me|in my case|my situation)\b/i,
+  /\b(ethical|moral|right|wrong|good|bad|justify|justified)\b/i,
+  /\b(hypothetical|imagine|suppose|what if|trolley|scenario)\b/i
+];
+
+function classifyQuery(query) {
+  const isPersonal = PERSONAL_PATTERNS
+    .some(p => p.test(query));
+  const needsCurrent = CURRENT_EVENTS_PATTERNS
+    .some(p => p.test(query));
+  if (isPersonal && !needsCurrent) return 'PERSONAL';
+  if (needsCurrent) return 'CURRENT';
+  return 'FACTUAL';
 }
 
-const RECENT_EVENT_NOTE = `NOTE: This query may reference recent events.
-Your training data may be outdated. If you are
-uncertain whether a stated fact is true, note
-this uncertainty explicitly in your ANALYSIS
-rather than assuming the premise is false.
-VERDICT based on the premise as stated.`;
-
-function hasRecentEventSignals(query) {
-  const patterns = [
-    /\b(today|yesterday|tonight|this morning|this evening|right now|currently|as of now)\b/i,
-    /\b(last|this|next)\s+(week|month|year|quarter)\b/i,
-    /\b(latest|breaking|recent|newly|news update|just happened)\b/i,
-    /\b20(2[4-9]|3\d)\b/,
-    /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:,\s*\d{4})?\b/i,
-  ];
-
-  return patterns.some((pattern) => pattern.test(query));
+function preprocessQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return { error: 'Invalid query' };
+  }
+  const trimmed = query.trim();
+  if (trimmed.length < 10) {
+    return {
+      error: 'Query too short for meaningful deliberation'
+    };
+  }
+  const clean = trimmed
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .substring(0, 2000);
+  const note = trimmed.length > 2000
+    ? 'Query truncated to 2000 chars'
+    : null;
+  const classification = classifyQuery(clean);
+  return { query: clean, note, classification };
 }
 
-function hasNamedIndividualSignals(query) {
-  const titledName = /\b(mr|mrs|ms|dr|president|prime minister|senator|governor|ceo)\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\b/;
-  if (titledName.test(query)) {
-    return true;
-  }
-
-  const properNamePairs = query.match(/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g) || [];
-  return properNamePairs.length > 0;
-}
-
-function shouldAppendRecentEventNote(query) {
-  return hasRecentEventSignals(query) || hasNamedIndividualSignals(query);
-}
-
-function preprocessQuery(rawQuery) {
-  if (typeof rawQuery !== 'string') {
-    return { ok: false, error: 'query must be a non-empty string' };
-  }
-
-  let query = rawQuery.trim();
-  query = stripHtmlAndScriptTags(query).replace(/\s+/g, ' ').trim();
-
-  if (query.length < 10) {
-    return { ok: false, error: 'Query too short for meaningful deliberation' };
-  }
-
-  let note = null;
-  if (query.length > 2000) {
-    query = query.slice(0, 2000);
-    note = 'Query truncated to 2000 chars';
-  }
-
-  if (shouldAppendRecentEventNote(query)) {
-    query = `${query}\n\n${RECENT_EVENT_NOTE}`;
-  }
-
-  return { ok: true, query, note };
-}
-
-module.exports = { preprocessQuery };
+module.exports = { preprocessQuery, classifyQuery };

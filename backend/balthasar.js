@@ -71,29 +71,7 @@ is to make sure that cost is never invisible. Be the
 voice of the person who cannot speak for themselves
 in this deliberation.`;
 
-const MODE_INSTRUCTIONS = {
-  CONSENSUS: `This deliberation is in CONSENSUS mode.
-Reason carefully and objectively.
-Your goal is to reach the most defensible verdict.
-Be precise and thorough.`,
-  DEBATE: `This deliberation is in DEBATE mode.
-Be more aggressive in your reasoning.
-Challenge assumptions harder. Do not
-soften your verdict.`,
-  ANALYSIS: `This deliberation is in ANALYSIS mode.
-Provide more detailed reasoning than usual.
-Expand your analysis section significantly.
-Prioritize depth over brevity.`,
-};
-
-function buildModeUserMessage(mode, query) {
-  const normalizedMode = typeof mode === 'string' ? mode.toUpperCase() : 'CONSENSUS';
-  const modeInstruction = MODE_INSTRUCTIONS[normalizedMode];
-  const prefix = `MODE: ${normalizedMode}\n\nQUERY: ${query}`;
-  return modeInstruction ? `${prefix}\n\n${modeInstruction}` : prefix;
-}
-
-async function callBalthasar(query, mode) {
+async function callBalthasar(query) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('BALTHASAR: ANTHROPIC_API_KEY is not configured');
   }
@@ -107,7 +85,7 @@ async function callBalthasar(query, mode) {
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [
-        { role: 'user', content: buildModeUserMessage(mode, query) },
+        { role: 'user', content: query },
       ],
     });
   } catch (err) {

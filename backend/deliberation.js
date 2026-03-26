@@ -1,6 +1,8 @@
 const { callMelchior, callMelchiorRaw } = require('./melchior');
 const { callBalthasar, callBalthasarRaw } = require('./balthasar');
 const { callCasper, callCasperRaw } = require('./casper');
+const { classifyQuery } = require('./triage');
+const { getSearchContext } = require('./searchOrchestrator');
 
 // Matches any line containing APPROVED / REJECTED / ABSTAIN (case-insensitive),
 // including variants like CONDITIONAL APPROVAL, PARTIAL APPROVAL, etc.
@@ -158,11 +160,11 @@ function buildStage2Message(query, ownName, ownResponse, assumptions) {
   ].join('\n');
 }
 
-async function callUnit(name, fn, query, mode) {
+async function callUnit(name, fn, query) {
   const start = Date.now();
   try {
     console.log(`[${name}] Calling API...`);
-    const response = await fn(query, mode);
+    const response = await fn(query);
     const elapsed = Date.now() - start;
     console.log(`[${name}] Responded in ${elapsed}ms`);
     return { response, error: null };
@@ -176,9 +178,25 @@ async function callUnit(name, fn, query, mode) {
   }
 }
 
-async function runDeliberation(query, mode) {
+async function runDeliberation(query) {
   const start = Date.now();
-  console.log(`[MAGI] Deliberation started — mode: ${mode}`);
+  console.log('[MAGI] Deliberation started');
+
+  const classification = classifyQuery(query);
+  const searchContext = await getSearchContext(
+    query,
+    classification
+  );
+  const searchUsed = !!searchContext;
+
+  const enrichedQuery = searchContext
+    ? `QUERY: ${query}
+
+CURRENT CONTEXT (from web search):
+${searchContext}
+
+Reference this context where relevant in your analysis.`
+    : query;
 
   function withUnitTimeout(unitCallPromise) {
     let timeoutId;
@@ -196,7 +214,7 @@ async function runDeliberation(query, mode) {
     const unitStart = Date.now();
     try {
       console.log(`[${name}] Stage 1 calling API...`);
-      const response = await withUnitTimeout(fn(query, mode));
+      const response = await withUnitTimeout(fn(enrichedQuery));
       const elapsed = Date.now() - unitStart;
       console.log(`[${name}] Stage 1 responded in ${elapsed}ms`);
       const parsed = parseResponse(response);
@@ -277,9 +295,9 @@ async function runDeliberation(query, mode) {
   // ── STAGE 2: ASSUMPTION EXCHANGE ─────────────────────────────────────────
   const stage2Start = Date.now();
   const [melchiorS2, balthasarS2, casperS2] = await Promise.all([
-    callUnitStage2Safely('MELCHIOR',  callMelchiorRaw,  buildStage2Message(query, 'melchior',  melchiorS1.response,  assumptions)),
-    callUnitStage2Safely('BALTHASAR', callBalthasarRaw, buildStage2Message(query, 'balthasar', balthasarS1.response, assumptions)),
-    callUnitStage2Safely('CASPER',    callCasperRaw,    buildStage2Message(query, 'casper',    casperS1.response,    assumptions)),
+    callUnitStage2Safely('MELCHIOR',  callMelchiorRaw,  buildStage2Message(enrichedQuery, 'melchior',  melchiorS1.response,  assumptions)),
+    callUnitStage2Safely('BALTHASAR', callBalthasarRaw, buildStage2Message(enrichedQuery, 'balthasar', balthasarS1.response, assumptions)),
+    callUnitStage2Safely('CASPER',    callCasperRaw,    buildStage2Message(enrichedQuery, 'casper',    casperS1.response,    assumptions)),
   ]);
 
   const s2Elapsed = Date.now() - stage2Start;
@@ -301,6 +319,8 @@ async function runDeliberation(query, mode) {
     stage1: { melchior: melchiorS1, balthasar: balthasarS1, casper: casperS1 },
     stage2: { melchior: melchiorS2, balthasar: balthasarS2, casper: casperS2 },
     assumptions,
+    searchUsed,
+    classification,
     consensus,
     weightedScore,
     escalate,

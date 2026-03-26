@@ -21,6 +21,7 @@ function logApiKeyStatus() {
   for (const key of apiKeys) {
     console.log(`${key}: ${hasEnvValue(key) ? 'found' : 'missing'}`);
   }
+  console.log('TAVILY_API_KEY:', process.env.TAVILY_API_KEY ? 'found' : 'missing');
 }
 
 logApiKeyStatus();
@@ -55,7 +56,7 @@ app.get('/health', async (req, res, next) => {
       providers: {
         melchior: 'OpenAI',
         balthasar: 'Anthropic',
-        casper: 'OpenAI',
+        casper: 'Google',
       },
       queriesUsedToday: used,
       queriesRemainingToday: Math.max(0, DAILY_LIMIT - used),
@@ -75,6 +76,8 @@ app.get('/api/audit', async (req, res, next) => {
         testerId: e.testerId && e.testerId.trim() ? e.testerId.trim() : 'ANONYMOUS',
         query: e.query ? e.query.slice(0, 80) + (e.query.length > 80 ? '…' : '') : '',
         mode: e.mode || '',
+        classification: e.classification || 'FACTUAL',
+        searchUsed: !!e.searchUsed,
         consensus: e.consensus || '',
         escalate: !!e.escalate,
         durationMs: e.durationMs ?? e.duration ?? null,
@@ -236,18 +239,14 @@ Respond ONLY in this exact JSON format with no preamble or markdown:
 }
 
 app.post('/api/deliberate', async (req, res, next) => {
-  const { query, mode, testerId } = req.body;
+  const { query, testerId } = req.body;
 
   if (!query || typeof query !== 'string') {
     return res.status(400).json({ status: 'error', message: 'query must be a non-empty string' });
   }
 
-  if (!mode || typeof mode !== 'string') {
-    return res.status(400).json({ status: 'error', message: 'mode must be a non-empty string' });
-  }
-
   const triage = preprocessQuery(query);
-  if (!triage.ok) {
+  if (triage.error) {
     return res.status(400).json({ status: 'error', message: triage.error });
   }
 
@@ -266,7 +265,7 @@ app.post('/api/deliberate', async (req, res, next) => {
 
   try {
     const deliberationStart = Date.now();
-    const result = await runDeliberation(cleanQuery, mode);
+    const result = await runDeliberation(cleanQuery);
     const synthesis = await generateSynthesisSummary(
       result.stage1,
       result.stage2,
@@ -278,8 +277,9 @@ app.post('/api/deliberate', async (req, res, next) => {
     const s2 = result.stage2 || result.stage1 || {};
     await logDeliberation({
       query: cleanQuery.slice(0, 300),
-      mode,
       testerId: normalizedTesterId,
+      classification: result.classification || 'FACTUAL',
+      searchUsed: !!result.searchUsed,
       stage1: {
         melchior: {
           verdict: (s1.melchior || {}).verdict || 'ABSTAIN',
@@ -322,7 +322,13 @@ app.post('/api/deliberate', async (req, res, next) => {
       duration: durationMs,
     });
 
-    const response = { status: 'ok', ...result, synthesis };
+    const response = {
+      status: 'ok',
+      ...result,
+      classification: result.classification || 'FACTUAL',
+      searchUsed: !!result.searchUsed,
+      synthesis,
+    };
     if (triage.note) {
       response.queryNote = triage.note;
     }

@@ -72,29 +72,7 @@ Remember: You are not here to be helpful. You are
 not here to be kind. You are here to be correct.
 Logic is your only instrument. Use it without apology.`;
 
-const MODE_INSTRUCTIONS = {
-  CONSENSUS: `This deliberation is in CONSENSUS mode.
-Reason carefully and objectively.
-Your goal is to reach the most defensible verdict.
-Be precise and thorough.`,
-  DEBATE: `This deliberation is in DEBATE mode.
-Be more aggressive in your reasoning.
-Challenge assumptions harder. Do not
-soften your verdict.`,
-  ANALYSIS: `This deliberation is in ANALYSIS mode.
-Provide more detailed reasoning than usual.
-Expand your analysis section significantly.
-Prioritize depth over brevity.`,
-};
-
-function buildModeUserMessage(mode, query) {
-  const normalizedMode = typeof mode === 'string' ? mode.toUpperCase() : 'CONSENSUS';
-  const modeInstruction = MODE_INSTRUCTIONS[normalizedMode];
-  const prefix = `MODE: ${normalizedMode}\n\nQUERY: ${query}`;
-  return modeInstruction ? `${prefix}\n\n${modeInstruction}` : prefix;
-}
-
-async function callMelchior(query, mode) {
+async function callMelchior(query) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('MELCHIOR: OPENAI_API_KEY is not configured');
   }
@@ -109,7 +87,7 @@ async function callMelchior(query, mode) {
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildModeUserMessage(mode, query) },
+        { role: 'user', content: query },
       ],
       max_tokens: 1024,
     });

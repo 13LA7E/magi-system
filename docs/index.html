@@ -4,673 +4,702 @@
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAGI SYSTEM — NERV CENTRAL DOGMA</title>
+  <title>MAGI Intelligence Console</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600&display=swap');
 
     :root {
-      --green:       #00ff41;
-      --green-dim:   #00aa2b;
-      --green-dark:  #003d0e;
-      --green-faint: rgba(0,255,65,0.05);
-      --red:         #ff2200;
-      --amber:       #ffaa00;
-      --info:        #8fd7ff;
-      --bg:          #000000;
-      --panel-bg:    #020f04;
-      --border:      rgba(0,255,65,0.28);
-      --glow:        0 0 10px rgba(0,255,65,0.65), 0 0 22px rgba(0,255,65,0.25);
-      --glow-strong: 0 0 16px rgba(0,255,65,1),   0 0 36px rgba(0,255,65,0.45);
+      --bg: #07070f;
+      --surface: #0d0d18;
+      --surface-raised: #141422;
+      --surface-high: #1c1c2e;
+      --border: #1e1e30;
+      --border-bright: #2e2e45;
+      --text-primary: #e2e2f0;
+      --text-secondary: #7878a0;
+      --text-dim: #454560;
+      --accent: #00c8a8;
+      --accent-glow: rgba(0,200,168,0.15);
+      --amber: #e8962a;
+      --amber-glow: rgba(232,150,42,0.15);
+      --red: #d42848;
+      --red-glow: rgba(212,40,72,0.15);
+      --blue: #3870f0;
+      --blue-glow: rgba(56,112,240,0.15);
+      --purple: #7850e0;
     }
 
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: var(--bg);
-      color: var(--green);
-      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      background: radial-gradient(1200px 800px at 10% -10%, #111123 0%, transparent 60%),
+                  radial-gradient(900px 700px at 90% -20%, #141428 0%, transparent 65%),
+                  var(--bg);
+      color: var(--text-primary);
+      font-family: 'Space Grotesk', sans-serif;
       min-height: 100vh;
-      overflow-x: hidden;
     }
 
-    /* CRT scanlines */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent, transparent 2px,
-        rgba(0,0,0,0.13) 2px, rgba(0,0,0,0.13) 4px
-      );
-      pointer-events: none;
-      z-index: 9999;
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 20px 24px;
     }
 
-    /* CRT vignette */
-    body::after {
-      content: '';
-      position: fixed; inset: 0;
-      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
-      pointer-events: none;
-      z-index: 9998;
-    }
-
-    /* ─── Layout ─── */
-    .container { max-width: 1440px; margin: 0 auto; padding: 20px 28px; }
-
-    /* ─── Header ─── */
     .header {
-      text-align: center;
-      padding: 32px 0 22px;
+      height: 56px;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .header-eyebrow {
-      font-size: 10px; letter-spacing: 6px;
-      color: var(--green-dim); margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 -20px 18px;
+      padding: 0 20px;
     }
     .header-title {
-      font-family: 'Orbitron', monospace;
-      font-size: clamp(36px, 5vw, 58px);
-      font-weight: 900;
-      letter-spacing: 18px;
-      text-shadow: var(--glow-strong);
-      animation: flicker 9s infinite;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: 6px;
+      color: var(--accent);
+      text-shadow: 0 0 16px var(--accent-glow);
     }
-    .header-sub {
-      font-size: 10px; letter-spacing: 7px;
-      color: var(--green-dim); margin-top: 10px;
+    .unit-status-cluster {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
     }
+    .unit-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+    }
+    .unit-chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      animation: dot-pulse 2.2s ease-in-out infinite;
+    }
+    .unit-chip.melchior { color: var(--accent); }
+    .unit-chip.balthasar { color: var(--amber); }
+    .unit-chip.casper { color: var(--blue); }
+    .unit-chip.melchior .unit-chip-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+    .unit-chip.balthasar .unit-chip-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber-glow); }
+    .unit-chip.casper .unit-chip-dot { background: var(--blue); box-shadow: 0 0 8px var(--blue-glow); }
 
-    /* ─── Status bar ─── */
     .status-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 7px 14px;
-      background: var(--green-faint);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
       border: 1px solid var(--border);
-      font-size: 11px; letter-spacing: 2px; color: var(--green-dim);
-      margin-bottom: 22px;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
     }
-    .dot {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; background: var(--green);
-      box-shadow: 0 0 7px var(--green);
-      margin-right: 7px;
-      animation: blink-dot 2.4s infinite;
-    }
+    .dot { display: none; }
 
-    /* ─── Query section ─── */
     .query-section {
-      background: var(--panel-bg);
+      background: var(--surface);
       border: 1px solid var(--border);
-      padding: 20px 22px 18px;
-      margin-bottom: 22px;
-      position: relative;
+      border-radius: 4px;
+      padding: 24px;
+      margin-bottom: 14px;
     }
-    .query-section::before {
-      content: 'QUERY INPUT';
-      position: absolute; top: -10px; left: 18px;
-      background: var(--bg); padding: 0 8px;
-      font-size: 10px; letter-spacing: 5px; color: var(--green-dim);
-    }
-    .query-controls {
-      display: flex; align-items: center; gap: 14px; margin-bottom: 12px;
-    }
-    .mode-label { font-size: 11px; letter-spacing: 2px; color: var(--green-dim); white-space: nowrap; }
-    select.mode-select {
-      background: var(--bg); border: 1px solid var(--border);
-      color: var(--green); font-family: inherit;
-      font-size: 12px; letter-spacing: 2px; padding: 6px 12px;
-      cursor: pointer; outline: none;
-    }
-    select.mode-select:focus { border-color: var(--green); box-shadow: var(--glow); }
-
     .tester-row {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
-      max-width: 420px;
+      gap: 8px;
+      margin-bottom: 16px;
     }
     .tester-label {
-      font-size: 11px;
-      letter-spacing: 2px;
-      color: var(--green-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
     }
     input.tester-id-input {
       width: 100%;
       background: var(--bg);
       border: 1px solid var(--border);
-      color: var(--green);
-      font-family: inherit;
-      font-size: 12px;
-      letter-spacing: 1.2px;
-      padding: 8px 10px;
+      border-radius: 2px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      letter-spacing: 0.2px;
+      padding: 10px 12px;
       outline: none;
+      transition: all 0.2s ease;
     }
-    input.tester-id-input::placeholder { color: var(--green-dark); }
-    input.tester-id-input:focus { border-color: var(--green); box-shadow: var(--glow); }
+    input.tester-id-input::placeholder { color: var(--text-dim); }
+    input.tester-id-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .query-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 8px;
+    }
 
     textarea.query-input {
-      width: 100%; background: var(--bg);
-      border: 1px solid var(--border); color: var(--green);
-      font-family: inherit; font-size: 14px; line-height: 1.65;
-      padding: 12px 14px; resize: vertical; min-height: 80px; outline: none;
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      padding: 12px;
+      resize: none;
+      min-height: 128px;
+      outline: none;
+      transition: all 0.2s ease;
     }
-    textarea.query-input::placeholder { color: var(--green-dark); }
-    textarea.query-input:focus { border-color: var(--green); box-shadow: var(--glow); }
+    textarea.query-input::placeholder { color: var(--text-dim); }
+    textarea.query-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
 
     .query-footer {
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       margin-top: 12px;
     }
-    .char-count { font-size: 11px; color: var(--green-dark); }
+    .char-count {
+      align-self: flex-end;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+    }
+
+    #search-indicator {
+      display: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-transform: uppercase;
+      align-self: flex-start;
+    }
 
     .submit-btn {
-      font-family: 'Orbitron', monospace;
-      font-size: 12px; font-weight: 700; letter-spacing: 4px;
-      color: var(--bg); background: var(--green);
-      border: none; padding: 11px 34px; cursor: pointer;
-      text-transform: uppercase; transition: all 0.1s;
+      width: 100%;
+      height: 44px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      color: #07070f;
+      background: var(--accent);
+      border: none;
+      border-radius: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .submit-btn:hover:not(:disabled) { box-shadow: var(--glow-strong); }
-    .submit-btn:active:not(:disabled) { transform: scale(0.98); }
-    .submit-btn:disabled { background: var(--green-dark); color: var(--green-dim); cursor: not-allowed; }
-
-    /* ─── Three-panel grid ─── */
-    .panels-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 16px; margin-bottom: 22px;
+    .submit-btn:hover:not(:disabled) {
+      filter: brightness(1.1);
+      box-shadow: 0 4px 20px var(--accent-glow);
     }
-
-    .unit-panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      min-height: 430px; position: relative;
-      transition: border-color 0.4s, box-shadow 0.4s;
-    }
-
-    .unit-panel.verdict-approved { border-color: rgba(0,255,65,0.75); box-shadow: 0 0 18px rgba(0,255,65,0.12); }
-    .unit-panel.verdict-rejected { border-color: rgba(255,34,0,0.75);  box-shadow: 0 0 18px rgba(255,34,0,0.12);  }
-    .unit-panel.verdict-abstain  { border-color: rgba(255,170,0,0.75); box-shadow: 0 0 18px rgba(255,170,0,0.10); }
-
-    /* scan-line sweep while loading */
-    .unit-panel.loading::after {
-      content: '';
-      position: absolute; left: 0; right: 0; top: 0;
-      height: 3px; background: var(--green);
-      box-shadow: 0 0 10px var(--green);
-      animation: sweep 1.8s linear infinite;
-      z-index: 5;
-    }
-
-    .panel-header {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-      background: rgba(0,255,65,0.035);
-    }
-    .panel-title {
-      font-family: 'Orbitron', monospace;
-      font-size: 13px; font-weight: 700; letter-spacing: 3px;
-      text-shadow: var(--glow);
-    }
-    .panel-sub { font-size: 10px; color: var(--green-dim); letter-spacing: 1.5px; margin-top: 3px; }
-    .panel-status { font-size: 10px; color: var(--green-dim); letter-spacing: 2px; }
-
-    .panel-body {
-      flex: 1; padding: 14px 16px;
-      overflow-y: auto;
-      font-size: 12px; line-height: 1.75;
-      color: #b8ffc8; white-space: pre-wrap; word-break: break-word;
-    }
-    .panel-body::-webkit-scrollbar { width: 4px; }
-    .panel-body::-webkit-scrollbar-track { background: var(--bg); }
-    .panel-body::-webkit-scrollbar-thumb { background: var(--green-dark); border-radius: 2px; }
-
-    .panel-placeholder {
-      display: flex; align-items: center; justify-content: center;
-      height: 100%; color: var(--green-dark);
-      font-size: 11px; letter-spacing: 3px;
-    }
-
-    /* Loading widget */
-    .loading-widget {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      height: 100%; gap: 18px; color: var(--green-dim);
-    }
-    .loading-label { font-size: 11px; letter-spacing: 4px; animation: blink-dot 0.9s infinite; }
-    .loading-bar {
-      width: 75%; height: 2px;
-      background: var(--green-dark); position: relative; overflow: hidden;
-    }
-    .loading-bar::after {
-      content: '';
-      position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
-      background: var(--green); box-shadow: 0 0 10px var(--green);
-      animation: scan-h 1.1s linear infinite;
-    }
-    .loading-sublabel { font-size: 10px; letter-spacing: 2px; color: var(--green-dark); }
-
-    /* Panel footer */
-    .panel-footer {
-      padding: 10px 14px; border-top: 1px solid var(--border);
-      display: none; align-items: center; gap: 14px;
-      background: rgba(0,255,65,0.025);
-    }
-    .panel-footer.visible { display: flex; }
-
-    .verdict-badge {
-      font-family: 'Orbitron', monospace;
-      font-size: 10px; font-weight: 700; letter-spacing: 2px;
-      padding: 5px 10px; border: 1px solid; white-space: nowrap;
-    }
-    .verdict-badge.approved { color:#00ff41; border-color:#00ff41; background:rgba(0,255,65,0.08); text-shadow:0 0 8px #00ff41; box-shadow:0 0 8px rgba(0,255,65,0.2); }
-    .verdict-badge.rejected { color:#ff2200; border-color:#ff2200; background:rgba(255,34,0,0.08);  text-shadow:0 0 8px #ff2200;  box-shadow:0 0 8px rgba(255,34,0,0.2);  }
-    .verdict-badge.abstain  { color:var(--amber); border-color:var(--amber); background:rgba(255,170,0,0.08); text-shadow:0 0 8px var(--amber); }
-
-    .conf-wrapper { flex:1; display:flex; flex-direction:column; gap:5px; }
-    .conf-label {
-      font-size: 10px; color: var(--green-dim); letter-spacing: 2px;
-      display: flex; justify-content: space-between;
-    }
-    .conf-bar { height: 4px; background: var(--green-dark); border-radius: 2px; overflow: hidden; }
-    .conf-fill {
-      height: 100%; width: 0%; border-radius: 2px;
-      transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .conf-fill.high   { background: #00ff41; box-shadow: 0 0 6px #00ff41; }
-    .conf-fill.medium { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-    .conf-fill.low    { background: #ff2200; box-shadow: 0 0 6px #ff2200; }
-
-    /* ─── Escalation panel ─── */
-    .escalation-panel {
-      background: rgba(255,34,0,0.05);
-      border: 1px solid rgba(255,34,0,0.55);
-      padding: 22px 24px;
-      margin-bottom: 20px;
+    .submit-btn:active:not(:disabled) { transform: translateY(1px); }
+    .submit-btn:disabled {
+      background: var(--surface-raised);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      cursor: not-allowed;
       position: relative;
+    }
+    .submit-btn:disabled::after {
+      content: ' ...';
+      animation: dots 1s steps(4, end) infinite;
+    }
+
+    .panels-grid,
+    .stage-header,
+    .stage-section {
+      display: none !important;
+    }
+
+    .legacy-panels {
       display: none;
     }
-    .escalation-panel.visible { display: block; animation: fade-in 0.4s ease-in; }
-    .escalation-panel::before {
-      content: '⚠  ESCALATION REQUIRED';
-      position: absolute; top: -10px; left: 18px;
-      background: var(--bg); padding: 0 8px;
-      font-size: 10px; letter-spacing: 5px; color: #ff2200;
-      text-shadow: 0 0 8px #ff2200;
-    }
-    .escalation-heading {
-      font-family: 'Orbitron', monospace;
-      font-size: 13px; font-weight: 700; letter-spacing: 3px;
-      color: #ff4422; margin-bottom: 12px;
-      animation: pulse 1.6s infinite;
-    }
-    .escalation-text { font-size: 13px; line-height: 1.85; color: #ffaa99; white-space: pre-wrap; }
 
-    /* ─── Synthesis panel ─── */
     .synthesis-panel {
-      background: var(--panel-bg);
+      background: var(--surface);
       border: 1px solid var(--border);
-      padding: 26px 28px;
-      margin-bottom: 18px;
-      position: relative;
+      border-radius: 4px;
+      padding: 20px 24px;
+      margin-bottom: 14px;
+      animation: fade-in 300ms ease;
     }
-    .synthesis-panel::before {
-      content: 'SYNTHESIS PROTOCOL';
-      position: absolute; top: -10px; left: 18px;
-      background: var(--bg); padding: 0 8px;
-      font-size: 10px; letter-spacing: 5px; color: var(--green-dim);
-    }
+
     .synthesis-placeholder {
-      color: var(--green-dark); font-size: 12px; letter-spacing: 3px; text-align: center;
-      padding: 14px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px 0;
     }
 
     .synthesis-content {
-      display: flex; align-items: center; gap: 36px;
-      animation: fade-in 0.5s ease-in;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1.4fr;
+      gap: 18px;
+      align-items: center;
     }
-    .synth-divider { width: 1px; height: 72px; background: var(--border); flex-shrink: 0; }
+    .synth-divider {
+      width: 1px;
+      align-self: stretch;
+      background: var(--border);
+    }
 
-    .consensus-block { text-align: center; min-width: 180px; }
-    .consensus-caption { font-size: 10px; letter-spacing: 4px; color: var(--green-dim); margin-bottom: 10px; }
+    .consensus-block,
+    .score-block {
+      text-align: center;
+    }
+
+    .consensus-caption,
+    .score-caption {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
     .consensus-value {
-      font-family: 'Orbitron', monospace;
-      font-size: clamp(22px, 2.5vw, 32px);
-      font-weight: 900; letter-spacing: 6px;
-    }
-    .consensus-value.approved { color:#00ff41; text-shadow:0 0 22px #00ff41; }
-    .consensus-value.rejected { color:#ff2200; text-shadow:0 0 22px #ff2200; }
-    .consensus-value.split    { color:var(--amber); text-shadow:0 0 22px var(--amber); animation: amber-pulse 1.1s infinite; }
-    .consensus-value.deadlock { color:#ff2200; text-shadow:0 0 28px #ff2200, 0 0 56px #ff2200; animation: deadlock-pulse 0.42s infinite; font-size: clamp(26px, 3vw, 38px); }
-    .consensus-value.insufficient_context {
-      color: var(--info);
-      text-shadow: 0 0 20px rgba(143,215,255,0.8);
-      font-size: clamp(18px, 2vw, 24px);
-      line-height: 1.35;
-    }
-
-    .score-block { text-align: center; min-width: 110px; }
-    .score-caption { font-size: 10px; letter-spacing: 3px; color: var(--green-dim); margin-bottom: 8px; }
-    .score-value { font-family: 'Orbitron', monospace; font-size: 26px; font-weight: 700; }
-
-    .tally-block { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-    .tally-row { display: flex; align-items: center; gap: 12px; font-size: 12px; }
-    .tally-name { width: 120px; letter-spacing: 1px; }
-    .tally-verdict { width: 88px; font-weight: bold; }
-    .tally-verdict.approved { color: #00ff41; }
-    .tally-verdict.rejected { color: #ff2200; }
-    .tally-verdict.abstain  { color: var(--amber); }
-    .tally-conf { color: var(--green-dim); font-size: 11px; }
-
-    .synthesis-export-row {
-      display: none;
-      justify-content: flex-end;
-      margin-top: 18px;
-      border-top: 1px solid rgba(0,255,65,0.14);
-      padding-top: 14px;
-    }
-    .synthesis-export-row.visible { display: flex; }
-    .export-btn {
-      font-family: 'Orbitron', monospace;
-      font-size: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
       letter-spacing: 3px;
       text-transform: uppercase;
-      color: var(--green);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 9px 14px;
-      cursor: pointer;
-      transition: all 0.15s;
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid;
+      animation: verdict-pulse 400ms ease-out 1;
     }
-    .export-btn:hover {
-      border-color: var(--green);
-      box-shadow: var(--glow);
-      text-shadow: 0 0 8px rgba(0,255,65,0.65);
+    .consensus-value.approved {
+      background: var(--accent-glow);
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
     }
-    .export-btn:active { transform: scale(0.98); }
+    .consensus-value.rejected {
+      background: var(--red-glow);
+      color: var(--red);
+      border-color: var(--red);
+      box-shadow: 0 0 12px var(--red-glow);
+    }
+    .consensus-value.split {
+      background: var(--amber-glow);
+      color: var(--amber);
+      border-color: var(--amber);
+    }
+    .consensus-value.deadlock {
+      background: rgba(120,80,224,0.15);
+      color: var(--purple);
+      border-color: var(--purple);
+      box-shadow: 0 0 16px rgba(120,80,224,0.2);
+    }
+    .consensus-value.insufficient_context {
+      background: rgba(56,112,240,0.12);
+      color: var(--blue);
+      border-color: var(--blue);
+      font-size: 10px;
+      letter-spacing: 2px;
+      line-height: 1.4;
+    }
+
+    .score-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 300;
+      font-size: 32px;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .synthesis-meta {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .classification-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .classification-badge.personal { color: var(--blue); border-color: var(--blue); background: var(--blue-glow); }
+    .classification-badge.factual { color: #a2a2b9; border-color: #5f5f78; background: rgba(95,95,120,0.2); }
+    .classification-badge.current { color: var(--amber); border-color: var(--amber); background: var(--amber-glow); }
+
+    .tally-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .tally-row {
+      display: grid;
+      grid-template-columns: 110px 86px 1fr;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .tally-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .tally-name { color: var(--text-dim); letter-spacing: 1px; }
+    .tally-verdict.approved { color: var(--accent); }
+    .tally-verdict.rejected { color: var(--red); }
+    .tally-verdict.abstain  { color: var(--amber); }
+    .tally-conf { color: var(--text-dim); }
+
+    .section-divider {
+      position: relative;
+      height: 1px;
+      background: var(--border);
+      margin: 18px 0 14px;
+    }
+    .divider-label,
+    .summary-label {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      background: var(--surface);
+      padding: 0 12px;
+    }
+    .summary-label {
+      position: static;
+      transform: none;
+      display: inline-block;
+      margin-bottom: 10px;
+      padding: 0;
+      background: transparent;
+    }
 
     .synthesis-summary {
       display: none;
-      margin-top: 20px;
-      padding-top: 18px;
-      border-top: 1px solid rgba(0,255,65,0.16);
-      animation: fade-in 0.45s ease-in;
+      animation: fade-in 300ms ease;
+      margin-top: 6px;
     }
     .synthesis-summary.visible { display: block; }
-    .summary-label {
-      font-family: 'Orbitron', monospace;
-      font-size: 10px;
-      letter-spacing: 3px;
-      color: var(--green-dim);
-      margin-bottom: 10px;
+    .summary-section {
+      opacity: 0;
+      animation: fade-in 300ms ease forwards;
+      margin-bottom: 18px;
     }
-    .summary-section { margin-bottom: 18px; }
+    .summary-section:nth-child(1) { animation-delay: 0ms; }
+    .summary-section:nth-child(2) { animation-delay: 100ms; }
+    .summary-section:nth-child(3) { animation-delay: 200ms; }
+    .summary-section:nth-child(4) { animation-delay: 300ms; margin-bottom: 0; }
 
     .contrib-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
+      grid-template-columns: 1fr;
     }
     .contrib-card {
-      border: 1px solid var(--border);
-      background: rgba(0,255,65,0.03);
-      padding: 10px 12px;
-      min-height: 112px;
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
     }
+    .contrib-card:last-child { border-bottom: none; }
     .contrib-unit {
-      font-family: 'Orbitron', monospace;
-      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
       letter-spacing: 2px;
-      margin-bottom: 8px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      padding-top: 2px;
     }
-    .contrib-unit.melchior { color: #00ff41; text-shadow: 0 0 8px rgba(0,255,65,0.65); }
-    .contrib-unit.balthasar { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.55); }
-    .contrib-unit.casper { color: #ffe066; text-shadow: 0 0 8px rgba(255,224,102,0.45); }
     .contrib-text {
-      font-size: 12px;
-      line-height: 1.6;
-      color: #b8ffc8;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-secondary);
     }
 
     .align-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 24px;
     }
     .align-col {
+      background: var(--surface-raised);
       border: 1px solid var(--border);
-      background: rgba(0,255,65,0.02);
-      padding: 10px 12px;
+      border-radius: 4px;
+      padding: 14px;
     }
-    .align-col.agreement { border-color: rgba(0,255,65,0.35); }
-    .align-col.conflict  { border-color: rgba(255,170,0,0.45); background: rgba(255,170,0,0.04); }
     .align-title {
-      font-family: 'Orbitron', monospace;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       letter-spacing: 2px;
       margin-bottom: 8px;
     }
-    .align-title.agreement { color: #00ff41; }
-    .align-title.conflict { color: #ffaa00; }
-    .align-list {
-      margin: 0;
-      padding-left: 18px;
-      font-size: 12px;
-      line-height: 1.65;
-      color: #b8ffc8;
-    }
-    .align-list li + li { margin-top: 5px; }
-    .summary-empty {
-      list-style: none;
-      color: var(--green-dim);
-      margin-left: -18px;
-    }
+    .align-title.agreement { color: var(--accent); }
+    .align-title.conflict { color: var(--amber); }
+    .align-list { padding-left: 18px; color: var(--text-secondary); }
+    .align-list li { margin-bottom: 6px; }
+    .align-col.agreement li::marker { color: var(--accent); }
+    .align-col.conflict li::marker { color: var(--amber); }
+    .summary-empty { list-style: none; margin-left: -18px; color: var(--text-dim); }
 
     .theme-block,
     .rationale-block {
       border: 1px solid var(--border);
-      background: rgba(0,255,65,0.02);
-      padding: 10px 12px;
+      border-radius: 4px;
+      background: var(--surface-raised);
+      padding: 12px;
     }
-    .theme-text {
-      text-align: center;
-      font-size: 13px;
-      line-height: 1.7;
-      color: #d5ffe0;
-    }
+    .theme-text,
     .rationale-text {
-      font-size: 12px;
-      line-height: 1.85;
-      color: #90c99f;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-secondary);
     }
 
-    /* ─── Audit log panel ─── */
-    .audit-panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--border);
-      padding: 0;
-      margin-bottom: 18px;
-      position: relative;
+    .synthesis-export-row {
+      display: none;
+      justify-content: flex-end;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
     }
-    .audit-panel::before {
-      content: 'DELIBERATION AUDIT LOG';
-      position: absolute; top: -10px; left: 18px;
-      background: var(--bg); padding: 0 8px;
-      font-size: 10px; letter-spacing: 5px; color: var(--green-dim);
+    .synthesis-export-row.visible { display: flex; }
+    .export-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .export-btn:hover { color: var(--text-secondary); }
+
+    .escalation-panel {
+      display: none;
+      border-left: 3px solid var(--red);
+      background: var(--red-glow);
+      border-radius: 2px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .escalation-panel.visible {
+      display: none;
+      animation: fade-in 300ms ease;
+    }
+    .escalation-panel.visible { display: block; }
+    .escalation-heading {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 10px;
+    }
+    .escalation-text {
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+    }
+
+    .audit-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 14px;
     }
     .audit-toolbar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 18px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px;
       border-bottom: 1px solid var(--border);
     }
-    .audit-refresh-btn {
-      font-family: inherit; font-size: 10px; letter-spacing: 3px;
-      color: var(--green-dim); background: none;
-      border: 1px solid var(--border); padding: 5px 14px; cursor: pointer;
-      transition: all 0.15s;
-    }
-    .audit-refresh-btn:hover { color: var(--green); border-color: var(--green); box-shadow: var(--glow); }
-    .audit-run-btn {
-      font-family: inherit;
+    #audit-count {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 9px;
       letter-spacing: 2px;
-      color: var(--green);
+      color: var(--text-dim) !important;
+      text-transform: uppercase;
+    }
+    .audit-refresh-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
       background: transparent;
-      border: 1px solid var(--border);
-      padding: 3px 8px;
+      border: none;
       cursor: pointer;
-      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+    .audit-refresh-btn:hover { color: var(--text-secondary); }
+    .audit-run-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      text-transform: uppercase;
       white-space: nowrap;
     }
-    .audit-run-btn:hover { border-color: var(--green); box-shadow: var(--glow); }
+    .audit-run-btn:hover { color: var(--text-secondary); }
     .audit-run-col { text-align: right; white-space: nowrap; }
     .audit-empty {
-      text-align: center; padding: 24px; font-size: 11px;
-      color: var(--green-dark); letter-spacing: 3px;
+      text-align: center;
+      padding: 20px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
     }
     .audit-scroll { max-height: 220px; overflow-y: auto; }
-    .audit-scroll::-webkit-scrollbar { width: 4px; }
-    .audit-scroll::-webkit-scrollbar-track { background: var(--bg); }
-    .audit-scroll::-webkit-scrollbar-thumb { background: var(--green-dark); }
+    .audit-scroll::-webkit-scrollbar { width: 8px; }
+    .audit-scroll::-webkit-scrollbar-track { background: var(--surface); }
+    .audit-scroll::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 12px; }
     table.audit-table {
-      width: 100%; border-collapse: collapse;
-      font-size: 11px; letter-spacing: 0.5px;
+      width: 100%;
+      border-collapse: collapse;
     }
     .audit-table thead tr {
-      background: rgba(0,255,65,0.04);
-      border-bottom: 1px solid var(--border);
+      background: var(--surface-raised);
     }
     .audit-table th {
-      padding: 8px 14px; text-align: left;
-      font-size: 9px; letter-spacing: 3px; color: var(--green-dim);
-      font-weight: normal; white-space: nowrap;
+      padding: 9px 14px;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 400;
+      color: var(--text-dim);
+      white-space: nowrap;
     }
     .audit-table td {
-      padding: 8px 14px; vertical-align: middle;
-      border-bottom: 1px solid rgba(0,255,65,0.07);
-      color: #9de8b0;
+      padding: 10px 14px;
+      vertical-align: middle;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border);
     }
-    .audit-table tr:last-child td { border-bottom: none; }
-    .audit-table tr:hover td { background: rgba(0,255,65,0.03); }
-    .audit-consensus.approved { color: #00ff41; }
-    .audit-consensus.rejected { color: #ff2200; }
-    .audit-consensus.split    { color: var(--amber); }
-    .audit-consensus.deadlock { color: #ff2200; font-weight: bold; }
-    .audit-consensus.insufficient_context { color: var(--info); font-weight: bold; }
-    .audit-consensus.abstain  { color: var(--green-dim); }
-    .audit-escalate { color: #ff4422; font-size: 10px; }
-    .audit-ts { color: var(--green-dim); font-size: 10px; white-space: nowrap; }
+    .audit-table tr:hover td { background: var(--surface-raised); }
+    .audit-consensus.approved { color: var(--accent); }
+    .audit-consensus.rejected { color: var(--red); }
+    .audit-consensus.split { color: var(--amber); }
+    .audit-consensus.deadlock { color: var(--purple); }
+    .audit-consensus.insufficient_context { color: var(--blue); }
+    .audit-consensus.abstain { color: var(--text-dim); }
+    .audit-escalate { color: var(--red); font-size: 10px; }
+    .audit-ts { color: var(--text-dim); font-size: 10px; white-space: nowrap; }
     .audit-query-cell { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .audit-dur { color: var(--green-dim); font-size: 10px; white-space: nowrap; }
+    .audit-dur { color: var(--text-dim); font-size: 10px; white-space: nowrap; }
 
-    /* ─── Footer ─── */
+    td[style*='var(--green-dim)'] { color: var(--accent) !important; }
+
     .footer {
-      text-align: center; padding: 16px 0 28px;
-      font-size: 10px; color: var(--green-dark); letter-spacing: 4px;
-      border-top: 1px solid rgba(0,255,65,0.1);
+      text-align: center;
+      padding: 12px 0 22px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
     }
 
-    /* ─── Animations ─── */
-    @keyframes flicker {
-      0%,94%,100% { opacity:1; }
-      95% { opacity:0.82; }
-      97% { opacity:0.94; }
-      99% { opacity:0.88; }
-    }
-    @keyframes blink-dot { 0%,100%{opacity:1;} 50%{opacity:0;} }
-    @keyframes scan-h { 0%{left:-40%;} 100%{left:100%;} }
-    @keyframes sweep   { from{top:0;} to{top:100%;} }
-    @keyframes pulse   { 0%,100%{opacity:1;} 50%{opacity:0.45;} }
-    @keyframes fade-in { from{opacity:0;} to{opacity:1;} }
+    #deadlock-overlay { display: none; }
+    .synthesis-panel.deadlock-mode { border-color: var(--purple); }
+    .synthesis-panel.split-mode { border-color: var(--amber); }
+    .synthesis-panel.insufficient-mode { border-color: var(--blue); }
 
-    /* ─── Deadlock / Split state enhancements ─── */
-    #deadlock-overlay {
-      position: fixed; inset: 0;
-      pointer-events: none; z-index: 9997;
-    }
-    #deadlock-overlay.active { animation: screen-flash 0.45s ease-out; }
-    @keyframes screen-flash {
-      0%   { background: rgba(255,34,0,0);    }
-      20%  { background: rgba(255,34,0,0.42); }
-      55%  { background: rgba(255,34,0,0.08); }
-      75%  { background: rgba(255,34,0,0.28); }
-      100% { background: rgba(255,34,0,0);    }
-    }
-    @keyframes deadlock-pulse {
-      0%,100% { opacity:1;    transform:scaleX(1.02); }
-      50%     { opacity:0.18; transform:scaleX(0.97);  }
-    }
-    @keyframes amber-pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
-    .synthesis-panel.deadlock-mode {
-      border-color: rgba(255,34,0,0.85);
-      box-shadow: 0 0 36px rgba(255,34,0,0.3), inset 0 0 28px rgba(255,34,0,0.06);
-      animation: border-alarm 0.65s infinite;
-    }
-    .synthesis-panel.split-mode {
-      border-color: rgba(255,170,0,0.7);
-      box-shadow: 0 0 24px rgba(255,170,0,0.18);
-    }
-    .synthesis-panel.insufficient-mode {
-      border-color: rgba(143,215,255,0.85);
-      box-shadow: 0 0 28px rgba(143,215,255,0.2), inset 0 0 22px rgba(143,215,255,0.05);
-    }
-    @keyframes border-alarm {
-      0%,100% { border-color:rgba(255,34,0,0.85); box-shadow:0 0 36px rgba(255,34,0,0.3);  }
-      50%     { border-color:rgba(255,34,0,0.18); box-shadow:0 0 8px  rgba(255,34,0,0.08); }
-    }
     .state-banner {
-      font-family: 'Orbitron', monospace;
-      font-size: clamp(10px, 1.3vw, 13px); font-weight: 700; letter-spacing: 4px;
-      text-align: center; padding: 8px 0 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 2px 0 12px;
+      color: var(--text-dim);
     }
-    .state-banner.deadlock { color:#ff2200; text-shadow:0 0 14px #ff2200; animation:deadlock-pulse 0.42s infinite; }
-    .state-banner.split    { color:var(--amber); text-shadow:0 0 10px var(--amber); animation:amber-pulse 1.1s infinite; }
-    .state-banner.insufficient_context {
-      color: var(--info);
-      text-shadow: 0 0 12px rgba(143,215,255,0.85);
-    }
+    .state-banner.deadlock { color: var(--purple); }
+    .state-banner.split { color: var(--amber); }
+    .state-banner.insufficient_context { color: var(--blue); }
 
-    /* ─── Responsive ─── */
     @media (max-width: 960px) {
-      .panels-grid { grid-template-columns: 1fr; }
-      .synthesis-content { flex-direction: column; gap: 22px; }
-      .synth-divider { width: 60%; height: 1px; }
-      .contrib-grid { grid-template-columns: 1fr; }
+      .synthesis-content {
+        grid-template-columns: 1fr;
+      }
+      .synth-divider {
+        width: 100%;
+        height: 1px;
+      }
       .align-grid { grid-template-columns: 1fr; }
+      .contrib-card { grid-template-columns: 1fr; }
     }
 
-    /* ─── Stage 2 Protocol ─── */
-    .stage-header {
-      font-family: 'Orbitron', monospace;
-      font-size: 11px; font-weight: 700; letter-spacing: 4px;
-      color: var(--green-dim); border-top: 1px solid var(--border);
-      padding: 18px 0 12px; margin-top: 8px; text-align: center;
+    .decision-badge.updated { color: var(--amber); }
+    .decision-badge.hold { color: var(--text-dim); }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .stage-tag {
-      font-size: 9px; letter-spacing: 2px; color: var(--green-dim);
-      background: rgba(0,255,65,0.08); border: 1px solid var(--border);
-      padding: 1px 5px; border-radius: 2px; vertical-align: middle; margin-left: 6px;
+    @keyframes dot-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.18); opacity: 1; }
     }
-    .decision-badge {
-      font-family: 'Orbitron', monospace;
-      font-size: 9px; font-weight: 700; letter-spacing: 2px;
-      padding: 2px 8px; border-radius: 2px; border: 1px solid var(--border);
+    @keyframes verdict-pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
     }
-    .decision-badge.updated {
-      color: var(--amber); border-color: var(--amber);
-      background: rgba(255,170,0,0.08); text-shadow: 0 0 8px var(--amber);
+    @keyframes dots {
+      0% { content: ' .'; }
+      33% { content: ' ..'; }
+      66% { content: ' ...'; }
+      100% { content: ' .'; }
     }
-    .decision-badge.hold { color: var(--green-dim); }
-    .unit-panel.verdict-updated {
-      border-color: rgba(255,170,0,0.55);
-      box-shadow: 0 0 18px rgba(255,170,0,0.12);
-    }
-    .stage-section { display: none; }
-    .stage-section.visible { display: block; }
   </style>
 </head>
 <body>
@@ -679,9 +708,12 @@
 
   <!-- Header -->
   <header class="header">
-    <div class="header-eyebrow">NERV CENTRAL DOGMA // GeoFront Level B-17 // A-801 AUTHORIZATION</div>
-    <div class="header-title">MAGI SYSTEM</div>
-    <div class="header-sub">SUPERCOMPUTER DELIBERATION NETWORK — 3-UNIT CONSENSUS PROTOCOL</div>
+    <div class="header-title">MAGI</div>
+    <div class="unit-status-cluster" aria-label="Unit status">
+      <span class="unit-chip melchior"><span class="unit-chip-dot"></span>MELCHIOR</span>
+      <span class="unit-chip balthasar"><span class="unit-chip-dot"></span>BALTHASAR</span>
+      <span class="unit-chip casper"><span class="unit-chip-dot"></span>CASPER</span>
+    </div>
   </header>
 
   <!-- Status bar -->
@@ -694,16 +726,8 @@
 
   <!-- Query input -->
   <section class="query-section">
-    <div class="query-controls">
-      <span class="mode-label">DELIBERATION MODE:</span>
-      <select class="mode-select" id="mode-select">
-        <option value="CONSENSUS">CONSENSUS</option>
-        <option value="DEBATE">DEBATE</option>
-        <option value="ANALYSIS">ANALYSIS</option>
-      </select>
-    </div>
     <div class="tester-row">
-      <label class="tester-label" for="tester-id-input">TESTER ID</label>
+      <label class="tester-label" for="tester-id-input">OPERATOR ID</label>
       <input
         type="text"
         class="tester-id-input"
@@ -711,171 +735,26 @@
         placeholder="Enter your name or code"
       />
     </div>
+    <label class="query-label" for="query-input">QUERY INPUT</label>
     <textarea class="query-input" id="query-input" rows="4"
       placeholder="Enter query for MAGI deliberation... (Ctrl+Enter to submit)"></textarea>
     <div class="query-footer">
       <span class="char-count" id="char-count">0 CHARACTERS</span>
+      <span id="search-indicator">🔍 SEARCH CONTEXTUALISED</span>
       <button class="submit-btn" id="submit-btn">INITIATE DELIBERATION</button>
     </div>
   </section>
 
-  <!-- Three unit panels -->
-  <div class="stage-header">STAGE 1 — BLIND ANALYSIS</div>
-  <div class="panels-grid">
-
-    <!-- MELCHIOR-1 -->
-    <div class="unit-panel" id="panel-melchior">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">MELCHIOR-1</div>
-          <div class="panel-sub">LOGIC &amp; SCIENTIFIC REASONING</div>
-        </div>
-        <span class="panel-status" id="melchior-status">STANDBY</span>
-      </div>
-      <div class="panel-body" id="melchior-body">
-        <div class="panel-placeholder">AWAITING QUERY</div>
-      </div>
-      <div class="panel-footer" id="melchior-footer">
-        <div class="verdict-badge" id="melchior-badge">—</div>
-        <div class="conf-wrapper">
-          <div class="conf-label">
-            <span>CONFIDENCE</span>
-            <span id="melchior-conf-pct">—</span>
-          </div>
-          <div class="conf-bar"><div class="conf-fill" id="melchior-conf-fill"></div></div>
-        </div>
-      </div>
+  <div class="legacy-panels" aria-hidden="true">
+    <div class="unit-panel" id="panel-melchior"><span id="melchior-status"></span><div id="melchior-body"></div><div id="melchior-footer"></div><span id="melchior-badge"></span><span id="melchior-conf-pct"></span><div id="melchior-conf-fill"></div></div>
+    <div class="unit-panel" id="panel-balthasar"><span id="balthasar-status"></span><div id="balthasar-body"></div><div id="balthasar-footer"></div><span id="balthasar-badge"></span><span id="balthasar-conf-pct"></span><div id="balthasar-conf-fill"></div></div>
+    <div class="unit-panel" id="panel-casper"><span id="casper-status"></span><div id="casper-body"></div><div id="casper-footer"></div><span id="casper-badge"></span><span id="casper-conf-pct"></span><div id="casper-conf-fill"></div></div>
+    <div class="stage-section" id="stage2-section">
+      <div class="unit-panel" id="panel-melchior-s2"><span id="melchior-s2-status"></span><span id="melchior-s2-decision"></span><div id="melchior-s2-body"></div><div id="melchior-s2-footer"></div><span id="melchior-s2-badge"></span><span id="melchior-s2-conf-pct"></span><div id="melchior-s2-conf-fill"></div></div>
+      <div class="unit-panel" id="panel-balthasar-s2"><span id="balthasar-s2-status"></span><span id="balthasar-s2-decision"></span><div id="balthasar-s2-body"></div><div id="balthasar-s2-footer"></div><span id="balthasar-s2-badge"></span><span id="balthasar-s2-conf-pct"></span><div id="balthasar-s2-conf-fill"></div></div>
+      <div class="unit-panel" id="panel-casper-s2"><span id="casper-s2-status"></span><span id="casper-s2-decision"></span><div id="casper-s2-body"></div><div id="casper-s2-footer"></div><span id="casper-s2-badge"></span><span id="casper-s2-conf-pct"></span><div id="casper-s2-conf-fill"></div></div>
     </div>
-
-    <!-- BALTHASAR-2 -->
-    <div class="unit-panel" id="panel-balthasar">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">BALTHASAR-2</div>
-          <div class="panel-sub">ETHICS &amp; HARM MODELING</div>
-        </div>
-        <span class="panel-status" id="balthasar-status">STANDBY</span>
-      </div>
-      <div class="panel-body" id="balthasar-body">
-        <div class="panel-placeholder">AWAITING QUERY</div>
-      </div>
-      <div class="panel-footer" id="balthasar-footer">
-        <div class="verdict-badge" id="balthasar-badge">—</div>
-        <div class="conf-wrapper">
-          <div class="conf-label">
-            <span>CONFIDENCE</span>
-            <span id="balthasar-conf-pct">—</span>
-          </div>
-          <div class="conf-bar"><div class="conf-fill" id="balthasar-conf-fill"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CASPER-3 -->
-    <div class="unit-panel" id="panel-casper">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">CASPER-3</div>
-          <div class="panel-sub">INTUITION &amp; LATERAL THINKING</div>
-        </div>
-        <span class="panel-status" id="casper-status">STANDBY</span>
-      </div>
-      <div class="panel-body" id="casper-body">
-        <div class="panel-placeholder">AWAITING QUERY</div>
-      </div>
-      <div class="panel-footer" id="casper-footer">
-        <div class="verdict-badge" id="casper-badge">—</div>
-        <div class="conf-wrapper">
-          <div class="conf-label">
-            <span>CONFIDENCE</span>
-            <span id="casper-conf-pct">—</span>
-          </div>
-          <div class="conf-bar"><div class="conf-fill" id="casper-conf-fill"></div></div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /panels-grid -->
-
-  <!-- Stage 2 -->
-  <div class="stage-section" id="stage2-section">
-    <div class="stage-header">STAGE 2 — ASSUMPTION EXCHANGE</div>
-    <div class="panels-grid">
-
-      <!-- MELCHIOR-1 S2 -->
-      <div class="unit-panel" id="panel-melchior-s2">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">MELCHIOR-1 <span class="stage-tag">S2</span></div>
-            <div class="panel-sub">POST-EXCHANGE VERDICT</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="decision-badge" id="melchior-s2-decision">—</span>
-            <span class="panel-status" id="melchior-s2-status">STANDBY</span>
-          </div>
-        </div>
-        <div class="panel-body" id="melchior-s2-body">
-          <div class="panel-placeholder">AWAITING STAGE 2</div>
-        </div>
-        <div class="panel-footer" id="melchior-s2-footer">
-          <div class="verdict-badge" id="melchior-s2-badge">—</div>
-          <div class="conf-wrapper">
-            <div class="conf-label"><span>CONFIDENCE</span><span id="melchior-s2-conf-pct">—</span></div>
-            <div class="conf-bar"><div class="conf-fill" id="melchior-s2-conf-fill"></div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- BALTHASAR-2 S2 -->
-      <div class="unit-panel" id="panel-balthasar-s2">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">BALTHASAR-2 <span class="stage-tag">S2</span></div>
-            <div class="panel-sub">POST-EXCHANGE VERDICT</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="decision-badge" id="balthasar-s2-decision">—</span>
-            <span class="panel-status" id="balthasar-s2-status">STANDBY</span>
-          </div>
-        </div>
-        <div class="panel-body" id="balthasar-s2-body">
-          <div class="panel-placeholder">AWAITING STAGE 2</div>
-        </div>
-        <div class="panel-footer" id="balthasar-s2-footer">
-          <div class="verdict-badge" id="balthasar-s2-badge">—</div>
-          <div class="conf-wrapper">
-            <div class="conf-label"><span>CONFIDENCE</span><span id="balthasar-s2-conf-pct">—</span></div>
-            <div class="conf-bar"><div class="conf-fill" id="balthasar-s2-conf-fill"></div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CASPER-3 S2 -->
-      <div class="unit-panel" id="panel-casper-s2">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">CASPER-3 <span class="stage-tag">S2</span></div>
-            <div class="panel-sub">POST-EXCHANGE VERDICT</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="decision-badge" id="casper-s2-decision">—</span>
-            <span class="panel-status" id="casper-s2-status">STANDBY</span>
-          </div>
-        </div>
-        <div class="panel-body" id="casper-s2-body">
-          <div class="panel-placeholder">AWAITING STAGE 2</div>
-        </div>
-        <div class="panel-footer" id="casper-s2-footer">
-          <div class="verdict-badge" id="casper-s2-badge">—</div>
-          <div class="conf-wrapper">
-            <div class="conf-label"><span>CONFIDENCE</span><span id="casper-s2-conf-pct">—</span></div>
-            <div class="conf-bar"><div class="conf-fill" id="casper-s2-conf-fill"></div></div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div><!-- /stage2-section -->
+  </div>
 
   <!-- Synthesis -->
   <div class="synthesis-panel">
@@ -885,24 +764,26 @@
 
     <div class="synthesis-summary" id="synthesis-summary">
       <div class="summary-section">
+        <div class="section-divider"><span class="divider-label">SUMMARY</span></div>
         <div class="summary-label">UNIT CONTRIBUTIONS</div>
         <div class="contrib-grid">
           <div class="contrib-card">
-            <div class="contrib-unit melchior">MELCHIOR-1</div>
+            <div class="contrib-unit melchior">LOGIC</div>
             <div class="contrib-text" id="summary-melchior">—</div>
           </div>
           <div class="contrib-card">
-            <div class="contrib-unit balthasar">BALTHASAR-2</div>
+            <div class="contrib-unit balthasar">ETHICS</div>
             <div class="contrib-text" id="summary-balthasar">—</div>
           </div>
           <div class="contrib-card">
-            <div class="contrib-unit casper">CASPER-3</div>
+            <div class="contrib-unit casper">LATERAL</div>
             <div class="contrib-text" id="summary-casper">—</div>
           </div>
         </div>
       </div>
 
       <div class="summary-section">
+        <div class="section-divider"><span class="divider-label">ANALYSIS</span></div>
         <div class="summary-label">CONVERGENCE &amp; DIVERGENCE</div>
         <div class="align-grid">
           <div class="align-col agreement">
@@ -917,14 +798,16 @@
       </div>
 
       <div class="summary-section">
-        <div class="summary-label">DELIBERATION THEME:</div>
+        <div class="section-divider"><span class="divider-label">EXECUTIVE SUMMARY</span></div>
+        <div class="summary-label">DELIBERATION THEME</div>
         <div class="theme-block">
           <div class="theme-text" id="summary-theme">—</div>
         </div>
       </div>
 
       <div class="summary-section" style="margin-bottom:0">
-        <div class="summary-label">SYNTHESIS RATIONALE:</div>
+        <div class="section-divider"><span class="divider-label">RATIONALE</span></div>
+        <div class="summary-label">SYNTHESIS RATIONALE</div>
         <div class="rationale-block">
           <div class="rationale-text" id="summary-rationale">—</div>
         </div>
@@ -952,8 +835,7 @@
   </div>
 
   <footer class="footer">
-    MAGI SYSTEM v3.0 // NERV HQ TOKYO-3 // ALL DELIBERATIONS LOGGED //
-    COMMANDER AUTHORIZATION REQUIRED FOR OVERRIDE
+    MAGI Intelligence Platform // Deliberation Audit Enabled
   </footer>
 
 </div><!-- /container -->
@@ -1183,6 +1065,7 @@
 
   exportBtn.addEventListener('click', downloadTranscript);
   hideExportButton();
+  resetSynthesisMetaBadges();
 
   /* ── Helpers ── */
   function setStatus(msg) {
@@ -1341,6 +1224,10 @@
         <div class="consensus-block">
           <div class="consensus-caption">CONSENSUS</div>
           <div class="consensus-value ${vc}">${consensusLabel}</div>
+          <div class="synthesis-meta">
+            <span id="classification-badge" class="classification-badge"></span>
+            <span id="search-indicator" class="search-indicator">🔍 WEB SEARCH USED</span>
+          </div>
         </div>
         <div class="synth-divider"></div>
         <div class="score-block">
@@ -1351,7 +1238,32 @@
         <div class="tally-block">${tallyRows}</div>
       </div>`;
 
+    const classification = (result.classification || 'FACTUAL').toUpperCase();
+    const classificationClass = classification === 'PERSONAL'
+      ? 'personal'
+      : classification === 'CURRENT'
+      ? 'current'
+      : 'factual';
+    const classificationBadge = document.getElementById('classification-badge');
+    const searchIndicator = document.getElementById('search-indicator');
+
+    if (classificationBadge) {
+      classificationBadge.textContent = classification;
+      classificationBadge.classList.add(classificationClass);
+      classificationBadge.style.display = 'inline-flex';
+    }
+    if (searchIndicator) {
+      searchIndicator.style.display = result.searchUsed ? 'inline-block' : 'none';
+    }
+
     if (isDeadlock) triggerDeadlockAlarm();
+  }
+
+  function resetSynthesisMetaBadges() {
+    const classificationBadge = document.getElementById('classification-badge');
+    const searchIndicator = document.getElementById('search-indicator');
+    if (classificationBadge) classificationBadge.style.display = 'none';
+    if (searchIndicator) searchIndicator.style.display = 'none';
   }
 
   function renderSynthesisSummary(summary) {
@@ -1410,7 +1322,6 @@
 
   async function submitQuery() {
     const query = queryInput.value.trim();
-    const mode  = document.getElementById('mode-select').value;
     const testerId = (testerIdInput.value || '').trim() || 'ANONYMOUS';
     if (!query) { queryInput.focus(); return; }
 
@@ -1419,6 +1330,7 @@
     hideEscalation();
     hideSynthesisSummary();
     hideExportButton();
+    resetSynthesisMetaBadges();
     latestTranscript = null;
     setStatus('DELIBERATION IN PROGRESS...');
 
@@ -1431,7 +1343,7 @@
       const res = await fetch('https://trymagi.tech/api/deliberate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, mode, testerId }),
+        body: JSON.stringify({ query, testerId }),
       });
 
       if (!res.ok) {
@@ -1452,7 +1364,6 @@
       latestTranscript = {
         timestamp: new Date().toISOString(),
         query,
-        mode,
         testerId,
         result: data,
       };
@@ -1474,6 +1385,7 @@
       document.getElementById('synthesis-body').innerHTML =
         `<div class="synthesis-placeholder" style="color:#ff2200">ERROR: ${err.message}</div>`;
       hideSynthesisSummary();
+      resetSynthesisMetaBadges();
       hideExportButton();
       latestTranscript = null;
       setStatus('DELIBERATION FAILED');

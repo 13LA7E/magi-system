@@ -5,6 +5,8 @@ const deliberationSchema = new mongoose.Schema({
   query: String,
   mode: String,
   testerId: String,
+  classification: String,
+  searchUsed: Boolean,
   stage1: {
     melchior: { verdict: String, confidence: Number },
     balthasar: { verdict: String, confidence: Number },
