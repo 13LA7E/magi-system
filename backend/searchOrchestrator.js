@@ -25,16 +25,51 @@ Maximum 10 words. Make it specific and current.`
   });
   const searchQuery = message.content
     .find(b => b.type === 'text')?.text?.trim() || query;
+  const usage = message?.usage || {};
+  const usageTokens = {
+    inputTokens: usage.input_tokens ?? 0,
+    outputTokens: usage.output_tokens ?? 0,
+  };
   console.log(`Collaborative search query: "${searchQuery}"`);
-  return searchQuery;
+  return { searchQuery, usageTokens, raw: message };
 }
 
 async function getSearchContext(query, classification) {
-  if (classification !== 'CURRENT') return null;
-  const searchQuery = await 
-    formCollaborativeSearchQuery(query);
-  if (!searchQuery) return null;
-  return await tavilySearch(searchQuery);
+  if (classification !== 'CURRENT') {
+    return {
+      searchUsed: false,
+      searchQuery: null,
+      searchContext: null,
+      tavilyResponse: null,
+      tokensUsed: null,
+      elapsedMs: 0,
+    };
+  }
+
+  const start = Date.now();
+  const collaboration = await formCollaborativeSearchQuery(query);
+  const searchQuery = collaboration?.searchQuery;
+  if (!searchQuery) {
+    return {
+      searchUsed: false,
+      searchQuery: null,
+      searchContext: null,
+      tavilyResponse: null,
+      tokensUsed: collaboration?.usageTokens || null,
+      elapsedMs: Date.now() - start,
+    };
+  }
+
+  const tavily = await tavilySearch(searchQuery, { returnMeta: true });
+  const searchContext = tavily?.text || null;
+  return {
+    searchUsed: !!searchContext,
+    searchQuery,
+    searchContext,
+    tavilyResponse: tavily?.raw || null,
+    tokensUsed: collaboration?.usageTokens || null,
+    elapsedMs: Date.now() - start,
+  };
 }
 
-module.exports = { getSearchContext };
+module.exports = { getSearchContext, formCollaborativeSearchQuery };

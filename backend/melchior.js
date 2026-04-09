@@ -72,7 +72,15 @@ Remember: You are not here to be helpful. You are
 not here to be kind. You are here to be correct.
 Logic is your only instrument. Use it without apology.`;
 
-async function callMelchior(query) {
+function extractUsage(completion) {
+  const usage = completion?.usage || {};
+  return {
+    inputTokens: usage.prompt_tokens ?? 0,
+    outputTokens: usage.completion_tokens ?? 0,
+  };
+}
+
+async function callMelchior(query, options = {}) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('MELCHIOR: OPENAI_API_KEY is not configured');
   }
@@ -100,10 +108,14 @@ async function callMelchior(query) {
     throw new Error('MELCHIOR: no text content in API response');
   }
 
+  if (options.returnMeta) {
+    return { text, usage: extractUsage(completion) };
+  }
+
   return text;
 }
 
-async function callMelchiorRaw(message) {
+async function callMelchiorRaw(message, options = {}) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('MELCHIOR: OPENAI_API_KEY is not configured');
   }
@@ -127,7 +139,15 @@ async function callMelchiorRaw(message) {
   const text = completion.choices?.[0]?.message?.content;
   if (!text) throw new Error('MELCHIOR: no text content in API response');
 
+  if (options.returnMeta) {
+    return { text, usage: extractUsage(completion) };
+  }
+
   return text;
 }
 
-module.exports = { callMelchior, callMelchiorRaw };
+function getSystemPrompt() {
+  return SYSTEM_PROMPT;
+}
+
+module.exports = { callMelchior, callMelchiorRaw, getSystemPrompt };

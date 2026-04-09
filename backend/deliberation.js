@@ -1,6 +1,6 @@
-const { callMelchior, callMelchiorRaw } = require('./melchior');
-const { callBalthasar, callBalthasarRaw } = require('./balthasar');
-const { callCasper, callCasperRaw } = require('./casper');
+const { callMelchior, callMelchiorRaw, getSystemPrompt: getMelchiorSystemPrompt } = require('./melchior');
+const { callBalthasar, callBalthasarRaw, getSystemPrompt: getBalthasarSystemPrompt } = require('./balthasar');
+const { callCasper, callCasperRaw, getSystemPrompt: getCasperSystemPrompt } = require('./casper');
 const { classifyQuery } = require('./triage');
 const { getSearchContext } = require('./searchOrchestrator');
 
@@ -124,6 +124,18 @@ function parseStage2Response(text) {
   return { decision, verdict, confidence };
 }
 
+function estimateTokens(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return Math.max(1, Math.ceil(text.length / 4));
+}
+
+function sanitizeConsoleText(text, maxLength = 2400) {
+  if (!text || typeof text !== 'string') return '';
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength).trim()}…` : trimmed;
+}
+
 function buildStage2Message(query, ownName, ownResponse, assumptions) {
   const nameLabels = {
     melchior:  "MELCHIOR's",
@@ -178,16 +190,18 @@ async function callUnit(name, fn, query) {
   }
 }
 
-async function runDeliberation(query) {
+async function runDeliberation(query, options = {}) {
   const start = Date.now();
   console.log('[MAGI] Deliberation started');
+  const developerMode = !!options.developerMode;
 
   const classification = classifyQuery(query);
-  const searchContext = await getSearchContext(
+  const searchTrace = await getSearchContext(
     query,
     classification
   );
-  const searchUsed = !!searchContext;
+  const searchContext = searchTrace?.searchContext || null;
+  const searchUsed = !!searchTrace?.searchUsed;
 
   const enrichedQuery = searchContext
     ? `QUERY: ${query}
@@ -197,6 +211,47 @@ ${searchContext}
 
 Reference this context where relevant in your analysis.`
     : query;
+
+  const developerTrace = developerMode ? {
+    timestamp: new Date().toISOString(),
+    query: {
+      raw: query,
+      cleaned: query,
+      classification,
+      note: null,
+    },
+    search: {
+      triggered: searchUsed,
+      collaborativeQuery: searchTrace?.searchQuery || null,
+      tavilyResponse: searchTrace?.tavilyResponse || null,
+      tokensUsed: searchTrace?.tokensUsed || null,
+      elapsedMs: searchTrace?.elapsedMs || 0,
+      contextualizedText: searchContext ? sanitizeConsoleText(searchContext, 5000) : null,
+    },
+    units: {
+      melchior: { stage1: null, stage2: null },
+      balthasar: { stage1: null, stage2: null },
+      casper: { stage1: null, stage2: null },
+    },
+    totals: {
+      tokensIn: 0,
+      tokensOut: 0,
+      totalTokens: 0,
+      estimatedCost: 0,
+      duration: null,
+    },
+    consensus: {
+      stage1Verdicts: {},
+      stage2Verdicts: {},
+      weightedScore: null,
+      finalConsensus: null,
+      escalate: null,
+    },
+    events: [],
+    request: {
+      enrichedQuery,
+    },
+  } : null;
 
   function withUnitTimeout(unitCallPromise) {
     let timeoutId;
@@ -210,19 +265,78 @@ Reference this context where relevant in your analysis.`
     });
   }
 
-  async function callUnitSafely(name, fn) {
+  function getUnitDebugName(name) {
+    return name.toLowerCase();
+  }
+
+  function ensureUnitDebug(name, provider, model, systemPrompt) {
+    if (!developerTrace) return null;
+    const key = getUnitDebugName(name);
+    const unit = developerTrace.units[key];
+    unit.unit = name;
+    unit.provider = provider;
+    unit.model = model;
+    unit.systemPrompt = systemPrompt;
+    return unit;
+  }
+
+  async function callUnitSafely(name, fn, systemPrompt, provider, model) {
     const unitStart = Date.now();
+    const unitDebug = ensureUnitDebug(name, provider, model, systemPrompt);
     try {
       console.log(`[${name}] Stage 1 calling API...`);
-      const response = await withUnitTimeout(fn(enrichedQuery));
+      if (developerTrace) {
+        developerTrace.events.push({
+          type: 'stage1-request',
+          unit: name,
+          prompt: enrichedQuery,
+          promptTokens: estimateTokens(`${systemPrompt}\n\n${enrichedQuery}`),
+        });
+      }
+      const apiResponse = await withUnitTimeout(fn(enrichedQuery, { returnMeta: true }));
       const elapsed = Date.now() - unitStart;
       console.log(`[${name}] Stage 1 responded in ${elapsed}ms`);
-      const parsed = parseResponse(response);
+      const text = typeof apiResponse === 'string' ? apiResponse : (apiResponse?.text || '');
+      const usage = apiResponse?.usage || {
+        inputTokens: estimateTokens(`${systemPrompt}\n\n${enrichedQuery}`),
+        outputTokens: estimateTokens(text),
+      };
+      const parsed = parseResponse(text);
       console.log(`[${name}] Stage 1 → verdict: ${parsed.verdict}, confidence: ${parsed.confidence}%`);
-      return { response, verdict: parsed.verdict, confidence: parsed.confidence, unavailable: false };
+      if (unitDebug) {
+        const promptTokens = usage.inputTokens ?? 0;
+        const responseTokens = usage.outputTokens ?? 0;
+        unitDebug.stage1 = {
+          promptSent: enrichedQuery,
+          responseReceived: text,
+          tokensIn: promptTokens,
+          tokensOut: responseTokens,
+          duration: elapsed,
+          usage,
+          verdict: parsed.verdict,
+          confidence: parsed.confidence,
+        };
+        developerTrace.totals.tokensIn += promptTokens;
+        developerTrace.totals.tokensOut += responseTokens;
+      }
+      return { response: text, verdict: parsed.verdict, confidence: parsed.confidence, unavailable: false, usage };
     } catch (err) {
       const elapsed = Date.now() - unitStart;
       console.error(`[${name}] Stage 1 failed after ${elapsed}ms: ${err.message}`);
+      if (unitDebug) {
+        const promptTokens = estimateTokens(`${systemPrompt}\n\n${enrichedQuery}`);
+        unitDebug.stage1 = {
+          promptSent: enrichedQuery,
+          responseReceived: `UNIT UNAVAILABLE - API error: ${err.message}`,
+          tokensIn: promptTokens,
+          tokensOut: 0,
+          duration: elapsed,
+          verdict: 'ABSTAIN',
+          confidence: 0,
+          error: err.message,
+        };
+        developerTrace.totals.tokensIn += promptTokens;
+      }
       return {
         response: `UNIT UNAVAILABLE - API error: ${err.message}`,
         verdict: 'ABSTAIN',
@@ -232,19 +346,65 @@ Reference this context where relevant in your analysis.`
     }
   }
 
-  async function callUnitStage2Safely(name, fn, message) {
+  async function callUnitStage2Safely(name, fn, message, systemPrompt, provider, model) {
     const unitStart = Date.now();
+    const unitDebug = ensureUnitDebug(name, provider, model, systemPrompt);
     try {
       console.log(`[${name}] Stage 2 calling API...`);
-      const response = await withUnitTimeout(fn(message));
+      if (developerTrace) {
+        developerTrace.events.push({
+          type: 'stage2-request',
+          unit: name,
+          prompt: message,
+          promptTokens: estimateTokens(`${systemPrompt}\n\n${message}`),
+        });
+      }
+      const apiResponse = await withUnitTimeout(fn(message, { returnMeta: true }));
       const elapsed = Date.now() - unitStart;
       console.log(`[${name}] Stage 2 responded in ${elapsed}ms`);
-      const parsed = parseStage2Response(response);
+      const text = typeof apiResponse === 'string' ? apiResponse : (apiResponse?.text || '');
+      const usage = apiResponse?.usage || {
+        inputTokens: estimateTokens(`${systemPrompt}\n\n${message}`),
+        outputTokens: estimateTokens(text),
+      };
+      const parsed = parseStage2Response(text);
       console.log(`[${name}] Stage 2 → decision: ${parsed.decision}, verdict: ${parsed.verdict}, confidence: ${parsed.confidence}%`);
-      return { response, decision: parsed.decision, verdict: parsed.verdict, confidence: parsed.confidence, unavailable: false };
+      if (unitDebug) {
+        const promptTokens = usage.inputTokens ?? 0;
+        const responseTokens = usage.outputTokens ?? 0;
+        unitDebug.stage2 = {
+          promptSent: message,
+          responseReceived: text,
+          tokensIn: promptTokens,
+          tokensOut: responseTokens,
+          duration: elapsed,
+          usage,
+          decision: parsed.decision,
+          verdict: parsed.verdict,
+          confidence: parsed.confidence,
+        };
+        developerTrace.totals.tokensIn += promptTokens;
+        developerTrace.totals.tokensOut += responseTokens;
+      }
+      return { response: text, decision: parsed.decision, verdict: parsed.verdict, confidence: parsed.confidence, unavailable: false, usage };
     } catch (err) {
       const elapsed = Date.now() - unitStart;
       console.error(`[${name}] Stage 2 failed after ${elapsed}ms: ${err.message}`);
+      if (unitDebug) {
+        const promptTokens = estimateTokens(`${systemPrompt}\n\n${message}`);
+        unitDebug.stage2 = {
+          promptSent: message,
+          responseReceived: `UNIT UNAVAILABLE - API error: ${err.message}`,
+          tokensIn: promptTokens,
+          tokensOut: 0,
+          duration: elapsed,
+          decision: 'HOLD',
+          verdict: 'ABSTAIN',
+          confidence: 0,
+          error: err.message,
+        };
+        developerTrace.totals.tokensIn += promptTokens;
+      }
       return {
         response: `UNIT UNAVAILABLE - API error: ${err.message}`,
         decision: 'HOLD',
@@ -257,9 +417,9 @@ Reference this context where relevant in your analysis.`
 
   // ── STAGE 1: BLIND PARALLEL ──────────────────────────────────────────────
   const [melchiorS1, balthasarS1, casperS1] = await Promise.all([
-    callUnitSafely('MELCHIOR', callMelchior),
-    callUnitSafely('BALTHASAR', callBalthasar),
-    callUnitSafely('CASPER', callCasper),
+    callUnitSafely('MELCHIOR', callMelchior, getMelchiorSystemPrompt(), 'OpenAI', 'gpt-4o-mini'),
+    callUnitSafely('BALTHASAR', callBalthasar, getBalthasarSystemPrompt(), 'Anthropic', 'claude-haiku-4-5'),
+    callUnitSafely('CASPER', callCasper, getCasperSystemPrompt(), 'Google', 'gemini-2.5-flash'),
   ]);
 
   const s1Elapsed = Date.now() - start;
@@ -295,9 +455,9 @@ Reference this context where relevant in your analysis.`
   // ── STAGE 2: ASSUMPTION EXCHANGE ─────────────────────────────────────────
   const stage2Start = Date.now();
   const [melchiorS2, balthasarS2, casperS2] = await Promise.all([
-    callUnitStage2Safely('MELCHIOR',  callMelchiorRaw,  buildStage2Message(enrichedQuery, 'melchior',  melchiorS1.response,  assumptions)),
-    callUnitStage2Safely('BALTHASAR', callBalthasarRaw, buildStage2Message(enrichedQuery, 'balthasar', balthasarS1.response, assumptions)),
-    callUnitStage2Safely('CASPER',    callCasperRaw,    buildStage2Message(enrichedQuery, 'casper',    casperS1.response,    assumptions)),
+    callUnitStage2Safely('MELCHIOR',  callMelchiorRaw,  buildStage2Message(enrichedQuery, 'melchior',  melchiorS1.response,  assumptions), getMelchiorSystemPrompt(), 'OpenAI', 'gpt-4o-mini'),
+    callUnitStage2Safely('BALTHASAR', callBalthasarRaw, buildStage2Message(enrichedQuery, 'balthasar', balthasarS1.response, assumptions), getBalthasarSystemPrompt(), 'Anthropic', 'claude-haiku-4-5'),
+    callUnitStage2Safely('CASPER',    callCasperRaw,    buildStage2Message(enrichedQuery, 'casper',    casperS1.response,    assumptions), getCasperSystemPrompt(), 'Google', 'gemini-2.5-flash'),
   ]);
 
   const s2Elapsed = Date.now() - stage2Start;
@@ -330,6 +490,24 @@ Reference this context where relevant in your analysis.`
 
   if (typeof reducedConfidence === 'number') result.consensusConfidence = reducedConfidence;
   if (singleVoteDirection) result.singleVoteDirection = singleVoteDirection;
+  if (developerTrace) {
+    developerTrace.totals.totalTokens = developerTrace.totals.tokensIn + developerTrace.totals.tokensOut;
+    developerTrace.totals.duration = totalElapsed;
+    developerTrace.consensus.stage1Verdicts = {
+      melchior: { verdict: melchiorS1.verdict, confidence: melchiorS1.confidence },
+      balthasar: { verdict: balthasarS1.verdict, confidence: balthasarS1.confidence },
+      casper: { verdict: casperS1.verdict, confidence: casperS1.confidence },
+    };
+    developerTrace.consensus.stage2Verdicts = {
+      melchior: { verdict: melchiorS2.verdict, confidence: melchiorS2.confidence },
+      balthasar: { verdict: balthasarS2.verdict, confidence: balthasarS2.confidence },
+      casper: { verdict: casperS2.verdict, confidence: casperS2.confidence },
+    };
+    developerTrace.consensus.weightedScore = weightedScore;
+    developerTrace.consensus.finalConsensus = consensus;
+    developerTrace.consensus.escalate = escalate;
+    result.debug = developerTrace;
+  }
 
   return result;
 }

@@ -106,7 +106,37 @@
       color: var(--text-dim);
       letter-spacing: 1.5px;
     }
+    .status-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .dot { display: none; }
+
+    .dev-toggle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .dev-toggle:hover {
+      color: var(--text-primary);
+      border-color: var(--border-bright);
+      background: var(--surface-raised);
+    }
+    .dev-toggle.active {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
 
     .query-section {
       background: var(--surface);
@@ -542,6 +572,211 @@
       white-space: pre-wrap;
     }
 
+    .dev-console {
+      display: none;
+      position: fixed;
+      top: 64px;
+      right: 16px;
+      width: 480px;
+      max-width: calc(100vw - 24px);
+      height: 80vh;
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 8px;
+      padding: 14px;
+      z-index: 9999;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+    .dev-console.visible { display: block; }
+    .dev-console-warning {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: var(--amber);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .dev-console-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .dev-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dev-console-close {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .dev-console-close:hover {
+      color: var(--text-primary);
+      border-color: var(--border-bright);
+      background: var(--surface-raised);
+    }
+    .dev-console-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .dev-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .dev-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+    }
+    .dev-pill.accent { color: var(--accent); border-color: var(--accent); background: var(--accent-glow); }
+    .dev-pill.blue { color: var(--blue); border-color: var(--blue); background: var(--blue-glow); }
+    .dev-pill.amber { color: var(--amber); border-color: var(--amber); background: var(--amber-glow); }
+    .dev-pill.red { color: var(--red); border-color: var(--red); background: var(--red-glow); }
+    .dev-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      height: calc(100% - 68px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+    .dev-card {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface-raised);
+      overflow: hidden;
+    }
+    .dev-card summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .dev-card summary::-webkit-details-marker { display: none; }
+    .dev-card[open] summary { color: var(--text-primary); border-bottom-color: var(--border-bright); }
+    .dev-card-body {
+      padding: 12px 14px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.75;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 360px;
+      overflow: auto;
+    }
+    .dev-card-body::-webkit-scrollbar { width: 8px; }
+    .dev-card-body::-webkit-scrollbar-track { background: var(--surface); }
+    .dev-card-body::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 12px; }
+    .dev-unit-block {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .dev-unit-heading {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .dev-unit-heading.ethics { color: var(--amber); }
+    .dev-unit-heading.lateral { color: var(--blue); }
+    .dev-mini-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+    .dev-pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-secondary);
+    }
+    .dev-token-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .dev-token-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+    }
+    .dev-token-table th,
+    .dev-token-table td {
+      border-bottom: 1px solid var(--border);
+      padding: 6px 4px;
+      text-align: left;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .dev-token-table th {
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 9px;
+    }
+    .dev-token-table tr:last-child td { border-bottom: none; }
+    .dev-raw-response {
+      margin-top: 8px;
+      border-top: 1px dashed var(--border);
+      padding-top: 8px;
+    }
+    .dev-token-metric {
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+    .dev-token-metric .label {
+      display: block;
+      font-size: 8px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .dev-token-metric .value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
     .audit-panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -676,7 +911,24 @@
       }
       .align-grid { grid-template-columns: 1fr; }
       .contrib-card { grid-template-columns: 1fr; }
+
+      .dev-console {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+        width: auto;
+        max-width: none;
+        height: calc(100vh - 16px);
+      }
     }
+
+    .audit-classification { text-transform: uppercase; }
+    .audit-classification.personal { color: var(--blue); }
+    .audit-classification.current { color: var(--amber); }
+    .audit-classification.factual { color: var(--text-secondary); }
+    .audit-search-col { width: 60px; text-align: center; }
+    .audit-search-flag { color: var(--blue); }
+    .audit-search-flag.muted { color: var(--text-dim); }
 
     .decision-badge.updated { color: var(--amber); }
     .decision-badge.hold { color: var(--text-dim); }
@@ -720,8 +972,11 @@
   <div class="status-bar">
     <span><span class="dot"></span>ALL UNITS NOMINAL</span>
     <span id="status-center">AWAITING QUERY INPUT</span>
-    <span id="query-counter">&#8212; / 100 QUERIES TODAY</span>
-    <span id="clock"></span>
+    <div class="status-bar-right">
+      <span id="query-counter">&#8212; / 100 QUERIES TODAY</span>
+      <span id="clock"></span>
+      <button type="button" class="dev-toggle" id="dev-mode-toggle">DEV CONSOLE OFF</button>
+    </div>
   </div>
 
   <!-- Query input -->
@@ -819,6 +1074,51 @@
     </div>
   </div>
 
+  <section class="dev-console" id="dev-console" aria-hidden="true">
+    <div class="dev-console-warning">WARNING: Internal debug trace. Do not share publicly.</div>
+    <div class="dev-console-toolbar">
+      <div class="dev-title-row">
+        <div class="dev-console-title">DEVELOPER CONSOLE</div>
+        <button type="button" id="dev-console-close" class="dev-console-close" aria-label="Close developer console">x</button>
+      </div>
+      <div class="dev-pill-row">
+        <span class="dev-pill accent" id="dev-mode-pill">DEV OFF</span>
+        <span class="dev-pill" id="dev-search-pill">SEARCH: OFF</span>
+        <span class="dev-pill" id="dev-token-pill">TOKENS: 0 / 0</span>
+        <span class="dev-pill" id="dev-time-pill">0.0s</span>
+      </div>
+    </div>
+
+    <div class="dev-grid">
+      <details class="dev-card" id="dev-request-card" open>
+        <summary>REQUEST + TRIAGE</summary>
+        <div class="dev-card-body" id="dev-request-body"></div>
+      </details>
+
+      <details class="dev-card" id="dev-search-card" open>
+        <summary>SEARCH PIPELINE</summary>
+        <div class="dev-card-body" id="dev-search-body"></div>
+      </details>
+
+      <details class="dev-card" id="dev-units-card" open>
+        <summary>UNIT PROMPTS + RESPONSES</summary>
+        <div class="dev-card-body" id="dev-units-body"></div>
+      </details>
+
+      <details class="dev-card" id="dev-tokens-card" open>
+        <summary>TOKEN COUNTS</summary>
+        <div class="dev-card-body">
+          <div class="dev-token-grid" id="dev-token-grid"></div>
+        </div>
+      </details>
+
+      <details class="dev-card" id="dev-events-card">
+        <summary>CONSENSUS + TIMINGS</summary>
+        <div class="dev-card-body" id="dev-events-body"></div>
+      </details>
+    </div>
+  </section>
+
   <!-- Escalation -->
   <div class="escalation-panel" id="escalation-panel">
     <div class="escalation-heading">CONSENSUS UNRESOLVED — HUMAN OVERRIDE REQUIRED</div>
@@ -865,12 +1165,19 @@
         const escFlag = e.escalate ? '<span class="audit-escalate">⚠</span>' : '';
         const query   = e.query ? e.query.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '—';
         const encodedQuery = e.query ? encodeURIComponent(e.query) : '';
-        const mode    = e.mode || '—';
+        const classification = (e.classification || 'FACTUAL').toUpperCase();
+        const classificationClass = classification === 'PERSONAL'
+          ? 'personal'
+          : classification === 'CURRENT'
+          ? 'current'
+          : 'factual';
+        const searchIcon = e.searchUsed ? '<span class="audit-search-flag" title="Web search used">🔍</span>' : '<span class="audit-search-flag muted">—</span>';
         return `<tr>
           <td class="audit-ts">${ts}</td>
-          <td style="white-space:nowrap;color:var(--green-dim);font-size:10px">${tester}</td>
+          <td style="white-space:nowrap;color:var(--accent);font-size:10px">${tester}</td>
           <td class="audit-query-cell" title="${query}">${query}</td>
-          <td style="white-space:nowrap;color:var(--green-dim);font-size:10px">${mode}</td>
+          <td class="audit-classification ${classificationClass}">${classification}</td>
+          <td class="audit-search-col">${searchIcon}</td>
           <td class="audit-consensus ${vc}">${e.consensus || '—'} ${escFlag}</td>
           <td class="audit-dur">${dur}</td>
           <td class="audit-run-col"><button type="button" class="audit-run-btn" data-run-query="${encodedQuery}">↺ RUN</button></td>
@@ -884,7 +1191,8 @@
               <th>TIMESTAMP (UTC)</th>
               <th>TESTER</th>
               <th>QUERY</th>
-              <th>MODE</th>
+              <th>CLASSIFICATION</th>
+              <th>SEARCH</th>
               <th>CONSENSUS</th>
               <th>DURATION</th>
               <th>RUN</th>
@@ -941,14 +1249,267 @@
   /* ── Char counter ── */
   const queryInput = document.getElementById('query-input');
   const testerIdInput = document.getElementById('tester-id-input');
+  const statusBar = document.querySelector('.status-bar');
+  const statusBarRight = document.querySelector('.status-bar-right');
+  const queryCounter = document.getElementById('query-counter');
+  const clockDisplay = document.getElementById('clock');
+  const devModeToggle = document.getElementById('dev-mode-toggle');
+  const devConsole = document.getElementById('dev-console');
+  const devConsoleClose = document.getElementById('dev-console-close');
+  const devModePill = document.getElementById('dev-mode-pill');
+  const devSearchPill = document.getElementById('dev-search-pill');
+  const devTokenPill = document.getElementById('dev-token-pill');
+  const devTimePill = document.getElementById('dev-time-pill');
+  const devRequestBody = document.getElementById('dev-request-body');
+  const devSearchBody = document.getElementById('dev-search-body');
+  const devUnitsBody = document.getElementById('dev-units-body');
+  const devTokenGrid = document.getElementById('dev-token-grid');
+  const devEventsBody = document.getElementById('dev-events-body');
   const TESTER_ID_STORAGE_KEY = 'magiTesterId';
+  const DEV_MODE_STORAGE_KEY = 'magiDeveloperMode';
+  const DEBUG_TOKEN_STORAGE_KEY = 'magiDebugToken';
+  let developerModeEnabled = false;
+  let latestDebugTrace = null;
+  let debugRefreshTimer = null;
+  let debugToken = '';
 
   try {
     const savedTesterId = localStorage.getItem(TESTER_ID_STORAGE_KEY);
     if (savedTesterId) {
       testerIdInput.value = savedTesterId;
     }
+    developerModeEnabled = localStorage.getItem(DEV_MODE_STORAGE_KEY) === 'true';
+    debugToken = localStorage.getItem(DEBUG_TOKEN_STORAGE_KEY) || '';
   } catch {}
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function stringifyDebug(value) {
+    if (value == null) return '(none)';
+    if (typeof value === 'string') return value;
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function updateDeveloperModeUI() {
+    document.body.classList.toggle('developer-mode-enabled', developerModeEnabled);
+    devModeToggle.classList.toggle('active', developerModeEnabled);
+    devModeToggle.textContent = developerModeEnabled ? 'DEV CONSOLE ON' : 'DEV CONSOLE OFF';
+    devModePill.textContent = developerModeEnabled ? 'DEV ON' : 'DEV OFF';
+    devConsole.classList.toggle('visible', developerModeEnabled);
+    devConsole.setAttribute('aria-hidden', developerModeEnabled ? 'false' : 'true');
+    if (!developerModeEnabled) {
+      latestDebugTrace = null;
+      devRequestBody.textContent = '';
+      devSearchBody.textContent = '';
+      devUnitsBody.textContent = '';
+      devTokenGrid.innerHTML = '';
+      devEventsBody.textContent = '';
+      devSearchPill.textContent = 'SEARCH: OFF';
+      devSearchPill.className = 'dev-pill';
+      devTokenPill.textContent = 'TOKENS: 0 / 0';
+      devTimePill.textContent = '0.0s';
+      if (debugRefreshTimer) {
+        clearInterval(debugRefreshTimer);
+        debugRefreshTimer = null;
+      }
+    }
+  }
+
+  function formatNum(value) {
+    return Number(value || 0).toLocaleString('en-US');
+  }
+
+  async function fetchLastDebugTrace() {
+    if (!developerModeEnabled || !debugToken) return;
+
+    try {
+      const res = await fetch('https://trymagi.tech/api/debug/last', {
+        method: 'GET',
+        headers: { 'x-debug-token': debugToken },
+      });
+
+      if (res.status === 401) {
+        devRequestBody.textContent = 'Unauthorized debug token. Press Ctrl+Shift+D to set a new token.';
+        toggleDeveloperMode(false);
+        return;
+      }
+      if (res.status === 404) {
+        devRequestBody.textContent = 'No debug trace yet. Run a deliberation first.';
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const payload = await res.json();
+      renderDeveloperConsole(payload.debug || null);
+    } catch (err) {
+      devRequestBody.textContent = `Debug fetch failed: ${err.message}`;
+    }
+  }
+
+  function renderDeveloperConsole(debug) {
+    if (!developerModeEnabled || !debug) {
+      devConsole.classList.remove('visible');
+      return;
+    }
+
+    latestDebugTrace = debug;
+    const triage = debug.query || {};
+    const search = debug.search || {};
+    const units = debug.units || {};
+    const timings = debug.totals || {};
+    const consensus = debug.consensus || {};
+    const synthesis = debug.synthesis || {};
+    const totals = debug.totals || {};
+
+    devConsole.classList.add('visible');
+    devConsole.setAttribute('aria-hidden', 'false');
+
+    devRequestBody.innerHTML = [
+      `<div class="dev-mini-label">Raw Query</div><pre class="dev-pre">${escapeHtml(triage.raw || '(none)')}</pre>`,
+      `<div class="dev-mini-label">Clean Query</div><pre class="dev-pre">${escapeHtml(triage.cleaned || '(none)')}</pre>`,
+      `<div class="dev-mini-label">Triage</div><pre class="dev-pre">${escapeHtml(stringifyDebug(triage))}</pre>`,
+    ].join('');
+
+    devSearchBody.innerHTML = [
+      `<div class="dev-mini-label">Triggered</div><pre class="dev-pre">${escapeHtml(search.triggered ? 'yes' : 'no')}</pre>`,
+      `<div class="dev-mini-label">Collaborative Query</div><pre class="dev-pre">${escapeHtml(search.collaborativeQuery || '(not used)')}</pre>`,
+      `<div class="dev-mini-label">Raw Tavily Response</div><pre class="dev-pre">${escapeHtml(stringifyDebug(search.tavilyResponse))}</pre>`,
+      `<div class="dev-mini-label">Search Tokens Used</div><pre class="dev-pre">${escapeHtml(search.tokensUsed == null ? '(unknown)' : search.tokensUsed)}</pre>`,
+    ].join('');
+
+    const unitOrder = [
+      { key: 'melchior', label: 'MELCHIOR', className: 'logic' },
+      { key: 'balthasar', label: 'BALTHASAR', className: 'ethics' },
+      { key: 'casper', label: 'CASPER', className: 'lateral' },
+    ];
+    devUnitsBody.innerHTML = unitOrder.map(({ key, label, className }) => {
+      const unit = units[key] || {};
+      const stage1 = unit.stage1 || {};
+      const stage2 = unit.stage2 || {};
+      return `
+        <div class="dev-unit-block">
+          <div class="dev-unit-heading ${className}">${label}</div>
+          <div class="dev-mini-label">Stage 1 Prompt</div>
+          <pre class="dev-pre">${escapeHtml(stage1.promptSent || '(none)')}</pre>
+          <div class="dev-mini-label">Stage 1 Response</div>
+          <pre class="dev-pre">${escapeHtml(stage1.responseReceived || '(none)')}</pre>
+          <div class="dev-mini-label">Stage 2 Prompt</div>
+          <pre class="dev-pre">${escapeHtml(stage2.promptSent || '(none)')}</pre>
+          <div class="dev-mini-label">Stage 2 Response</div>
+          <pre class="dev-pre">${escapeHtml(stage2.responseReceived || '(none)')}</pre>
+        </div>`;
+    }).join('');
+
+    const costRows = [
+      ['MELCHIOR Stage 1', units.melchior?.stage1, 'gpt-4o-mini'],
+      ['MELCHIOR Stage 2', units.melchior?.stage2, 'gpt-4o-mini'],
+      ['BALTHASAR Stage 1', units.balthasar?.stage1, 'claude-haiku-4-5'],
+      ['BALTHASAR Stage 2', units.balthasar?.stage2, 'claude-haiku-4-5'],
+      ['CASPER Stage 1', units.casper?.stage1, 'gemini-2.5-flash'],
+      ['CASPER Stage 2', units.casper?.stage2, 'gemini-2.5-flash'],
+      ['SYNTHESIS', synthesis, 'claude-haiku-4-5'],
+    ];
+
+    devTokenGrid.innerHTML = `
+      <table class="dev-token-table">
+        <thead>
+          <tr><th>Stage</th><th>Model</th><th>In</th><th>Out</th><th>Cost</th><th>Duration</th></tr>
+        </thead>
+        <tbody>
+          ${costRows.map(([label, stage, model]) => {
+            const inTokens = Number(stage?.tokensIn || 0);
+            const outTokens = Number(stage?.tokensOut || 0);
+            const est = Number(totals.estimatedCost || 0);
+            const duration = stage?.duration == null ? 'n/a' : `${stage.duration}ms`;
+            return `<tr>
+              <td>${escapeHtml(label)}</td>
+              <td>${escapeHtml(model)}</td>
+              <td>${formatNum(inTokens)}</td>
+              <td>${formatNum(outTokens)}</td>
+              <td>${escapeHtml('$' + (est > 0 ? (est / 7).toFixed(8) : '0.00000000'))}</td>
+              <td>${escapeHtml(duration)}</td>
+            </tr>`;
+          }).join('')}
+          <tr>
+            <td>TOTAL</td>
+            <td>ALL</td>
+            <td>${formatNum(totals.tokensIn || 0)}</td>
+            <td>${formatNum(totals.tokensOut || 0)}</td>
+            <td>${escapeHtml('$' + Number(totals.estimatedCost || 0).toFixed(8))}</td>
+            <td>${escapeHtml(((totals.duration || 0) / 1000).toFixed(2) + 's')}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="dev-raw-response">
+        <div class="dev-mini-label">Raw Synthesis Response</div>
+        <pre class="dev-pre">${escapeHtml(synthesis.responseReceived || '(none)')}</pre>
+      </div>
+    `;
+
+    devEventsBody.innerHTML = [
+      `<div class="dev-mini-label">Consensus</div><pre class="dev-pre">${escapeHtml(stringifyDebug(consensus))}</pre>`,
+      `<div class="dev-mini-label">Timings</div><pre class="dev-pre">${escapeHtml(stringifyDebug({
+        totalDurationMs: totals.duration || 0,
+        melchiorStage1: units.melchior?.stage1?.duration ?? null,
+        melchiorStage2: units.melchior?.stage2?.duration ?? null,
+        balthasarStage1: units.balthasar?.stage1?.duration ?? null,
+        balthasarStage2: units.balthasar?.stage2?.duration ?? null,
+        casperStage1: units.casper?.stage1?.duration ?? null,
+        casperStage2: units.casper?.stage2?.duration ?? null,
+      }))}</pre>`,
+    ].join('');
+
+    devSearchPill.textContent = search.triggered ? 'SEARCH: ON' : 'SEARCH: OFF';
+    devSearchPill.className = 'dev-pill ' + (search.triggered ? 'blue' : '');
+    devTokenPill.textContent = `TOKENS: ${formatNum(totals.tokensIn || 0)} / ${formatNum(totals.tokensOut || 0)}`;
+    devTimePill.textContent = `${((timings.duration ?? 0) / 1000).toFixed(1)}s`;
+  }
+
+  async function toggleDeveloperMode(forceValue) {
+    developerModeEnabled = typeof forceValue === 'boolean' ? forceValue : !developerModeEnabled;
+
+    if (developerModeEnabled && !debugToken) {
+      const entered = window.prompt('Enter DEBUG_TOKEN for /api/debug/last access:');
+      if (!entered || !entered.trim()) {
+        developerModeEnabled = false;
+      } else {
+        debugToken = entered.trim();
+        try {
+          localStorage.setItem(DEBUG_TOKEN_STORAGE_KEY, debugToken);
+        } catch {}
+      }
+    }
+
+    try {
+      localStorage.setItem(DEV_MODE_STORAGE_KEY, developerModeEnabled ? 'true' : 'false');
+    } catch {}
+
+    updateDeveloperModeUI();
+
+    if (developerModeEnabled) {
+      await fetchLastDebugTrace();
+      if (!debugRefreshTimer) {
+        debugRefreshTimer = setInterval(() => {
+          fetchLastDebugTrace();
+        }, 5000);
+      }
+    }
+  }
+
+  updateDeveloperModeUI();
 
   testerIdInput.addEventListener('input', () => {
     try {
@@ -1011,7 +1572,9 @@
       '--- MAGI DELIBERATION TRANSCRIPT ---',
       `Date: ${entry.timestamp}`,
       `Query: ${entry.query}`,
-      `Mode: ${entry.mode}`,
+      `Classification: ${result.classification || 'FACTUAL'}`,
+      `Search Used: ${result.searchUsed ? 'yes' : 'no'}`,
+      `Developer Mode: ${entry.developerMode ? 'enabled' : 'disabled'}`,
       '',
       '── STAGE 1: BLIND ANALYSIS ──',
       '',
@@ -1066,6 +1629,14 @@
   exportBtn.addEventListener('click', downloadTranscript);
   hideExportButton();
   resetSynthesisMetaBadges();
+  devModeToggle.addEventListener('click', () => { toggleDeveloperMode(); });
+  devConsoleClose.addEventListener('click', () => { toggleDeveloperMode(false); });
+  window.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'd') {
+      event.preventDefault();
+      toggleDeveloperMode();
+    }
+  });
 
   /* ── Helpers ── */
   function setStatus(msg) {
@@ -1184,7 +1755,7 @@
     const sign       = result.weightedScore > 0 ? '+' : '';
     const scoreColor = isInsufficientContext
       ? 'var(--info)'
-      : (result.weightedScore >= 0 ? 'var(--green)' : '#ff2200');
+      : (result.weightedScore >= 0 ? 'var(--accent)' : 'var(--red)');
     const isDeadlock = result.consensus === 'DEADLOCK';
     const isSplit    = result.consensus === 'SPLIT';
 

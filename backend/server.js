@@ -11,6 +11,13 @@ const { connectDB, getDailyCount, logDeliberation, getRecentLogs } = require('./
 
 const app = express();
 const DAILY_LIMIT = 100;
+let lastDebugLog = null;
+
+const PRICING_PER_MILLION = {
+  'gpt-4o-mini': { in: 0.15, out: 0.60 },
+  'claude-haiku-4-5': { in: 0.80, out: 4.00 },
+  'gemini-2.5-flash': { in: 0.075, out: 0.30 },
+};
 
 function hasEnvValue(key) {
   return typeof process.env[key] === 'string' && process.env[key].trim().length > 0;
@@ -228,24 +235,54 @@ Respond ONLY in this exact JSON format with no preamble or markdown:
 
     const text = message.content.find((b) => b.type === 'text')?.text || '{}';
     try {
-      return JSON.parse(text);
+      return {
+        summary: JSON.parse(text),
+        meta: {
+          promptSent: prompt,
+          responseReceived: text,
+          tokensIn: message?.usage?.input_tokens ?? 0,
+          tokensOut: message?.usage?.output_tokens ?? 0,
+        },
+      };
     } catch {
-      return fallback;
+      return {
+        summary: fallback,
+        meta: {
+          promptSent: prompt,
+          responseReceived: text,
+          tokensIn: message?.usage?.input_tokens ?? 0,
+          tokensOut: message?.usage?.output_tokens ?? 0,
+        },
+      };
     }
   } catch (err) {
     console.error('[MAGI] Synthesis summary generation failed:', err.message);
-    return fallback;
+    return {
+      summary: fallback,
+      meta: {
+        promptSent: null,
+        responseReceived: null,
+        tokensIn: 0,
+        tokensOut: 0,
+      },
+    };
   }
 }
 
-app.post('/api/deliberate', async (req, res, next) => {
-  const { query, testerId } = req.body;
+function unitCost(model, tokensIn, tokensOut) {
+  const price = PRICING_PER_MILLION[model];
+  if (!price) return 0;
+  return ((tokensIn / 1000000) * price.in) + ((tokensOut / 1000000) * price.out);
+}
 
-  if (!query || typeof query !== 'string') {
+app.post('/api/deliberate', async (req, res, next) => {
+  const { query: rawQuery, testerId, developerMode } = req.body;
+
+  if (!rawQuery || typeof rawQuery !== 'string') {
     return res.status(400).json({ status: 'error', message: 'query must be a non-empty string' });
   }
 
-  const triage = preprocessQuery(query);
+  const triage = preprocessQuery(rawQuery);
   if (triage.error) {
     return res.status(400).json({ status: 'error', message: triage.error });
   }
@@ -265,12 +302,14 @@ app.post('/api/deliberate', async (req, res, next) => {
 
   try {
     const deliberationStart = Date.now();
-    const result = await runDeliberation(cleanQuery);
-    const synthesis = await generateSynthesisSummary(
+    const result = await runDeliberation(cleanQuery, { developerMode: !!developerMode });
+    const synthesisResult = await generateSynthesisSummary(
       result.stage1,
       result.stage2,
       result.consensus
     );
+    const synthesis = synthesisResult.summary;
+    const synthesisMeta = synthesisResult.meta;
     const durationMs = Date.now() - deliberationStart;
 
     const s1 = result.stage1 || {};
@@ -329,6 +368,9 @@ app.post('/api/deliberate', async (req, res, next) => {
       searchUsed: !!result.searchUsed,
       synthesis,
     };
+    if (!developerMode) {
+      delete response.debug;
+    }
     if (triage.note) {
       response.queryNote = triage.note;
     }
@@ -336,10 +378,128 @@ app.post('/api/deliberate', async (req, res, next) => {
       response.escalationBrief = buildEscalationBrief(result);
     }
 
+    const trace = result.debug || {};
+    const mS1 = trace?.units?.melchior?.stage1 || {};
+    const mS2 = trace?.units?.melchior?.stage2 || {};
+    const bS1 = trace?.units?.balthasar?.stage1 || {};
+    const bS2 = trace?.units?.balthasar?.stage2 || {};
+    const cS1 = trace?.units?.casper?.stage1 || {};
+    const cS2 = trace?.units?.casper?.stage2 || {};
+
+    const tokensIn = (trace?.totals?.tokensIn || 0) + (synthesisMeta?.tokensIn || 0);
+    const tokensOut = (trace?.totals?.tokensOut || 0) + (synthesisMeta?.tokensOut || 0);
+    const stageCost =
+      unitCost('gpt-4o-mini', mS1.tokensIn || 0, mS1.tokensOut || 0) +
+      unitCost('gpt-4o-mini', mS2.tokensIn || 0, mS2.tokensOut || 0) +
+      unitCost('claude-haiku-4-5', bS1.tokensIn || 0, bS1.tokensOut || 0) +
+      unitCost('claude-haiku-4-5', bS2.tokensIn || 0, bS2.tokensOut || 0) +
+      unitCost('gemini-2.5-flash', cS1.tokensIn || 0, cS1.tokensOut || 0) +
+      unitCost('gemini-2.5-flash', cS2.tokensIn || 0, cS2.tokensOut || 0) +
+      unitCost('claude-haiku-4-5', synthesisMeta?.tokensIn || 0, synthesisMeta?.tokensOut || 0);
+
+    lastDebugLog = {
+      timestamp: new Date().toISOString(),
+      query: {
+        raw: rawQuery,
+        cleaned: cleanQuery,
+        classification: triage.classification,
+        note: triage.note,
+      },
+      search: {
+        triggered: !!trace?.search?.triggered,
+        collaborativeQuery: trace?.search?.collaborativeQuery || null,
+        tavilyResponse: trace?.search?.tavilyResponse || null,
+        tokensUsed: trace?.search?.tokensUsed || null,
+      },
+      units: {
+        melchior: {
+          stage1: {
+            promptSent: mS1.promptSent || null,
+            responseReceived: mS1.responseReceived || null,
+            tokensIn: mS1.tokensIn ?? null,
+            tokensOut: mS1.tokensOut ?? null,
+            duration: mS1.duration ?? null,
+          },
+          stage2: {
+            promptSent: mS2.promptSent || null,
+            responseReceived: mS2.responseReceived || null,
+            tokensIn: mS2.tokensIn ?? null,
+            tokensOut: mS2.tokensOut ?? null,
+            duration: mS2.duration ?? null,
+          },
+        },
+        balthasar: {
+          stage1: {
+            promptSent: bS1.promptSent || null,
+            responseReceived: bS1.responseReceived || null,
+            tokensIn: bS1.tokensIn ?? null,
+            tokensOut: bS1.tokensOut ?? null,
+            duration: bS1.duration ?? null,
+          },
+          stage2: {
+            promptSent: bS2.promptSent || null,
+            responseReceived: bS2.responseReceived || null,
+            tokensIn: bS2.tokensIn ?? null,
+            tokensOut: bS2.tokensOut ?? null,
+            duration: bS2.duration ?? null,
+          },
+        },
+        casper: {
+          stage1: {
+            promptSent: cS1.promptSent || null,
+            responseReceived: cS1.responseReceived || null,
+            tokensIn: cS1.tokensIn ?? null,
+            tokensOut: cS1.tokensOut ?? null,
+            duration: cS1.duration ?? null,
+          },
+          stage2: {
+            promptSent: cS2.promptSent || null,
+            responseReceived: cS2.responseReceived || null,
+            tokensIn: cS2.tokensIn ?? null,
+            tokensOut: cS2.tokensOut ?? null,
+            duration: cS2.duration ?? null,
+          },
+        },
+      },
+      synthesis: {
+        promptSent: synthesisMeta?.promptSent || null,
+        responseReceived: synthesisMeta?.responseReceived || null,
+        tokensIn: synthesisMeta?.tokensIn ?? null,
+        tokensOut: synthesisMeta?.tokensOut ?? null,
+        duration: null,
+      },
+      totals: {
+        tokensIn,
+        tokensOut,
+        totalTokens: tokensIn + tokensOut,
+        estimatedCost: Number(stageCost.toFixed(8)),
+        duration: durationMs,
+      },
+      consensus: {
+        stage1Verdicts: trace?.consensus?.stage1Verdicts || {},
+        stage2Verdicts: trace?.consensus?.stage2Verdicts || {},
+        weightedScore: result.weightedScore,
+        finalConsensus: result.consensus,
+        escalate: !!result.escalate,
+      },
+    };
+
     return res.json(response);
   } catch (err) {
     return next(err);
   }
+});
+
+app.get('/api/debug/last', (req, res) => {
+  if (req.headers['x-debug-token'] !== process.env.DEBUG_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (!lastDebugLog) {
+    return res.status(404).json({ error: 'No debug log available yet' });
+  }
+
+  return res.json({ status: 'ok', debug: lastDebugLog });
 });
 
 app.use((err, req, res, next) => {

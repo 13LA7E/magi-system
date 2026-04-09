@@ -93,7 +93,15 @@ is when everyone agrees. That is when you speak loudest.
 Your value is not in being right. It is in making sure
 the other two cannot be wrong without being challenged.`;
 
-async function callCasper(query) {
+function extractUsage(completion) {
+  const usage = completion?.response?.usageMetadata || {};
+  return {
+    inputTokens: usage.promptTokenCount ?? 0,
+    outputTokens: usage.candidatesTokenCount ?? 0,
+  };
+}
+
+async function callCasper(query, options = {}) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('CASPER: GEMINI_API_KEY is not configured');
   }
@@ -123,10 +131,14 @@ async function callCasper(query) {
     throw new Error('CASPER: no text content in API response');
   }
 
+  if (options.returnMeta) {
+    return { text, usage: extractUsage(completion), raw: completion?.response || completion };
+  }
+
   return text;
 }
 
-async function callCasperRaw(message) {
+async function callCasperRaw(message, options = {}) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('CASPER: GEMINI_API_KEY is not configured');
   }
@@ -154,7 +166,15 @@ async function callCasperRaw(message) {
   const text = completion?.response?.text?.();
   if (!text) throw new Error('CASPER: no text content in API response');
 
+  if (options.returnMeta) {
+    return { text, usage: extractUsage(completion), raw: completion?.response || completion };
+  }
+
   return text;
 }
 
-module.exports = { callCasper, callCasperRaw };
+function getSystemPrompt() {
+  return SYSTEM_PROMPT;
+}
+
+module.exports = { callCasper, callCasperRaw, getSystemPrompt };

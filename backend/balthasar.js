@@ -71,7 +71,15 @@ is to make sure that cost is never invisible. Be the
 voice of the person who cannot speak for themselves
 in this deliberation.`;
 
-async function callBalthasar(query) {
+function extractUsage(message) {
+  const usage = message?.usage || {};
+  return {
+    inputTokens: usage.input_tokens ?? 0,
+    outputTokens: usage.output_tokens ?? 0,
+  };
+}
+
+async function callBalthasar(query, options = {}) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('BALTHASAR: ANTHROPIC_API_KEY is not configured');
   }
@@ -98,10 +106,14 @@ async function callBalthasar(query) {
     throw new Error('BALTHASAR: no text content in API response');
   }
 
+  if (options.returnMeta) {
+    return { text, usage: extractUsage(message), raw: message };
+  }
+
   return text;
 }
 
-async function callBalthasarRaw(message) {
+async function callBalthasarRaw(message, options = {}) {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error('BALTHASAR: ANTHROPIC_API_KEY is not configured');
   }
@@ -123,7 +135,15 @@ async function callBalthasarRaw(message) {
   const text = msg.content.find((b) => b.type === 'text')?.text;
   if (!text) throw new Error('BALTHASAR: no text content in API response');
 
+  if (options.returnMeta) {
+    return { text, usage: extractUsage(msg), raw: msg };
+  }
+
   return text;
 }
 
-module.exports = { callBalthasar, callBalthasarRaw };
+function getSystemPrompt() {
+  return SYSTEM_PROMPT;
+}
+
+module.exports = { callBalthasar, callBalthasarRaw, getSystemPrompt };
