@@ -1,170 +1,117 @@
-# Sprint 01 Backlog (Next 2 Weeks)
+# Sprint 01 — Security Baseline + API Guardrails
 
-Format standard for future sprints: `.claude/sprints/sprint-doc-style-guide.md` and `.claude/sprints/sprint-template.md`.
+**Goal:** Establish production-grade security baseline without breaking deliberation behavior.
+**Length:** 2 weeks
+**Prerequisite:** None (first sprint)
 
-## Sprint Goal
+> For exact copy-paste prompts, see `.claude/commands/plan.md` Sprint 1 section.
 
-Establish production-grade security baseline without breaking deliberation behavior.
-
-## Use With /plan
-
-If you want one exact copy-paste prompt set, use `.claude/commands/plan.md`.
-
-## Claude Code Prompt Pack (Token-Efficient)
-
-Use these short prompts directly in Claude Code to keep context lean while shipping Sprint 1.
-
-### 0) Sprint Kickoff Prompt
-
-```text
-Implement Sprint 1 from .claude/sprints/sprint-01-backlog.md.
-Preserve MAGI invariants in CLAUDE.md.
-Work in small commits by story ID (S1-01..S1-05).
-After each story: run focused checks, summarize diff, update .claude/context.md.
-```
-
-### 1) S1-01 Security Middleware
-
-```text
-Do S1-01 only.
-File focus: backend/server.js, backend/package.json.
-Add Helmet, JSON/body limits, rate limit on /api/deliberate /api/audit /api/debug/last.
-Keep API response contracts unchanged.
-Run quick endpoint checks and report exact results.
-```
-
-### 2) S1-02 Request Validation
-
-```text
-Do S1-02 only.
-Add schema validation for POST /api/deliberate body: query(string), testerId(optional string), developerMode(optional boolean).
-Reject invalid payloads with stable 400 JSON.
-Do not change deliberation output shape.
-```
-
-### 3) S1-03 Debug Hardening
-
-```text
-Do S1-03 only.
-Harden GET /api/debug/last with ENABLE_DEBUG_ENDPOINT and strong DEBUG_TOKEN checks.
-Default: disabled in production unless explicit flag true.
-Keep behavior unchanged when allowed and authorized.
-```
-
-### 4) S1-04 Config Refactor
-
-```text
-Do S1-04 only.
-Move DAILY_LIMIT and CORS origins to env-backed config with safe defaults.
-Add startup config validation and clear warnings/fail-fast rules.
-Do not edit backend/.env directly.
-```
-
-### 5) S1-05 Regression Checks
-
-```text
-Do S1-05 only.
-Add lightweight smoke checks for /health, /api/deliberate, /api/audit, /api/debug/last.
-Include negative checks for validation and rate limit.
-Return command list and observed outputs summary.
-```
-
-### 6) Patch Review Prompt
-
-```text
-Review current Sprint 1 changes.
-Find only: regressions, security gaps, contract breaks, missing tests.
-List findings by severity with file references.
-Then give minimal fix plan.
-```
-
-### 7) End-of-Day Handoff Prompt
-
-```text
-Run /remember.
-Update .claude/context.md with:
-- completed story IDs
-- files changed
-- checks run + outcomes
-- blockers
-- next first action tomorrow
-Keep it concise.
-```
-
-### Prompt Rules
-
-- Keep prompts scoped to one story ID.
-- Name exact files when possible.
-- Require validation output, not just code edits.
-- Use /remember after every meaningful chunk.
+---
 
 ## Stories
 
-### S1-01 Security Middleware Foundation
+### S1-01 — Security Middleware Foundation
+**Files:** `backend/server.js`, `backend/package.json`
 
-- Add Helmet configuration
-- Add JSON/body size limits
-- Add express-rate-limit for core API routes
-
-Done when:
-
-- Security middleware enabled in backend startup path
-- Manual checks confirm expected headers and 429 behavior
-
-### S1-02 Request Validation
-
-- Add schema validation for /api/deliberate request payload
-- Enforce testerId normalization and strict booleans for developerMode
+Add:
+- `helmet` package with strict CSP and security header policy
+- `express.json({ limit: '50kb' })` body size cap
+- `express-rate-limit` on `/api/deliberate`, `/api/audit`, `/api/debug/last`
+  - `/api/deliberate`: 20 req/min per IP
+  - `/api/audit`: 30 req/min per IP
+  - `/api/debug/last`: 10 req/min per IP
 
 Done when:
+- Security headers present on all responses (verify with curl -I)
+- 429 returned consistently on rate limit breach
+- No existing response shapes changed
 
-- Invalid payloads return stable 400 error schema
-- Valid payload behavior unchanged
+---
 
-### S1-03 Debug Endpoint Hardening
+### S1-02 — Request Validation
+**File:** `backend/server.js`
 
-- Add ENABLE_DEBUG_ENDPOINT flag
-- Add strong token requirements and improved unauthorized telemetry
-- Restrict debug payload fields in production mode
+Add schema validation for `POST /api/deliberate` body:
+- `query`: string, required, max 2000 chars
+- `testerId`: string, optional, max 100 chars, alphanumeric + hyphens
+- `developerMode`: boolean, optional
 
-Done when:
-
-- Debug endpoint disabled by default in production
-- Access blocked unless both flag and token checks pass
-
-### S1-04 Configuration Refactor
-
-- Move DAILY_LIMIT and CORS origins to env
-- Add startup configuration validation with clear console warnings/errors
+Error shape: `{ "error": "VALIDATION_ERROR", "field": "query", "message": "..." }`
 
 Done when:
+- Missing `query` → 400 with `VALIDATION_ERROR`
+- `query` over 2000 chars → 400
+- Valid payload → deliberation runs unchanged
+- testerId with XSS payload → sanitized or rejected
 
-- Server reads limits/origins from env with safe defaults
-- Misconfiguration fails fast where required
+---
 
-### S1-05 Security Regression Checks
+### S1-03 — Debug Endpoint Hardening
+**File:** `backend/server.js`
 
-- Add smoke test script for /health, /api/deliberate, /api/audit, /api/debug/last
-- Add negative tests for rate limit and validation failures
+Changes:
+- Add `ENABLE_DEBUG_ENDPOINT` env flag (default: `false`)
+- When flag is `false`: return `404` (not `401`) — do not reveal endpoint exists
+- When flag is `true`: require `x-debug-token` header of minimum 32 chars
+- Log unauthorized access attempts (IP + timestamp) to stdout
 
 Done when:
+- Without flag set: GET /api/debug/last returns 404
+- With flag + weak token: returns 403
+- With flag + valid token: returns full debug payload unchanged
 
-- Smoke script reproducible locally
-- Results documented in sprint notes
+---
+
+### S1-04 — Configuration Refactor
+**Files:** `backend/server.js`, `.env.example`
+
+Move to env:
+- `DAILY_LIMIT` (default: `100`)
+- `CORS_ORIGINS` (comma-separated, default: `https://trymagi.tech`)
+- `NODE_ENV` usage in startup checks
+
+Add startup validation:
+- Warn (don't crash) if `DAILY_LIMIT` not set
+- Warn if `CORS_ORIGINS` contains `localhost` in production
+- Log resolved config values on startup (redact secrets)
+
+Done when:
+- Server reads limits from env with safe fallbacks
+- `.env.example` has all new keys with comments
+- `backend/.env` NOT modified
+
+---
+
+### S1-05 — Smoke Test Script
+**New file:** `backend/scripts/smoke-test.sh` (or `.js`)
+
+Tests:
+1. `GET /health` → 200, `status: "ok"` present
+2. `POST /api/deliberate` with valid minimal payload → 200, `consensus` field present
+3. `POST /api/deliberate` with missing `query` → 400, `VALIDATION_ERROR` in body
+4. `POST /api/deliberate` × 21 rapid requests → 429 on 21st
+5. `GET /api/debug/last` without token → 404
+6. `GET /api/audit` → 200, array response
+
+Done when:
+- Script is runnable: `./backend/scripts/smoke-test.sh http://localhost`
+- Results table printed: check | expected | actual | pass/fail
+- All 6 checks pass
+
+---
+
+## Exit Criteria
+- [ ] 0 known HIGH+ security findings in modified paths
+- [ ] All 6 smoke checks pass
+- [ ] `/api/deliberate` response contract unchanged (check `consensus`, `synthesis`, `stage1`, `stage2` fields present)
+- [ ] No stack traces returned to any client
+- [ ] No secrets in stdout logs
 
 ## Risks
+- Helmet CSP headers may break frontend font loading (Google Fonts) — test in browser after S1-01
+- Rate limits too tight may affect legitimate testing — adjust thresholds if needed
 
-- Tight coupling in server middleware order could cause regressions
-- Debug feature expectations may conflict with current developer workflow
-
-## Mitigations
-
-- Add incremental commits per story
-- Run endpoint smoke checks after each story
-- Keep a temporary compatibility flag during rollout
-
-## Sprint Review Metrics
-
-- 0 known high-severity security findings in modified paths
-- 100% pass on planned smoke checks
-- No regression in key response fields for /api/deliberate
+## Mitigation
+- Incremental commits per story (one commit per story ID)
+- Run smoke test after every story
+- Keep a temporary `DISABLE_RATE_LIMIT=true` flag for local dev
