@@ -22,7 +22,7 @@ A three-unit AI deliberation system inspired by the MAGI supercomputer from Neon
 |------|------|-------------|-------|
 | MELCHIOR-1 | Logic & scientific reasoning | OpenAI | gpt-4o-mini |
 | BALTHASAR-2 | Ethics & harm modeling | Anthropic | claude-haiku-4-5 |
-| CASPER-3 | Intuition & lateral thinking | OpenAI | gpt-4o-mini |
+| CASPER-3 | Intuition & lateral thinking | Google | gemini-2.5-flash |
 
 ## Setup
 
