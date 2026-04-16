@@ -1,13 +1,14 @@
-# Remember
+Read .claude/context.md first so you know the current state.
 
-Save the current work state into `.claude/context.md`.
+Then update .claude/context.md with:
+- Active sprint name and number
+- Story just completed (ID + one-line summary)
+- All files changed this session (paths only)
+- Checks run and their outcomes (pass / fail)
+- Any blockers encountered
+- Exact next action for next session (specific file + what to do)
 
-Include:
-
-- what changed
-- why it changed
-- any blockers or follow-up work
-- the next concrete step
-- whether product invariants in `CLAUDE.md` were preserved
-
-Keep the note short and factual. Do not rewrite unrelated sections that are still accurate.
+Rules:
+- Bullet points only, no prose
+- Do not include code or diffs
+- Overwrite the relevant sections, do not append duplicates
