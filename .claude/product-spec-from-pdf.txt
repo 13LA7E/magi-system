@@ -1,0 +1,555 @@
+MAGI
+MULTI-AGENT GOVERNANCE INTELLIGENCE
+PRODUCT & BUSINESS SPECIFICATION
+VERSION v0.9 — Pre-Seed Draft
+DATE April 2026
+CLASSIFICATION Confidential
+FOUNDER Syed
+DOMAIN trymagi.tech
+STAGE Working Prototype · Active Testing
+This document contains proprietary information about the MAGI system including technical architecture, deliberation protocol,
+business model, and competitive positioning. It is intended for investor review, technical due diligence, and AI system
+onboarding.
+
+-- 1 of 22 --
+
+MAGI SPECIFICATION · 2	CONFIDENTIAL
+TABLE OF CONTENTS
+01 Executive Summary 3
+02 The Problem 3
+03 The Solution — What MAGI Does 4
+04 System Architecture 4
+05 The Crucible Protocol — 7 Stages 5
+06 The Three Units 6
+07 Query Intelligence & Triage 7
+08 Web Search Integration 7
+09 Technology Stack 8
+10 Live Demo 8
+11 Market Opportunity 9
+12 Competitive Landscape 9
+13 Business Model 10
+14 Go-To-Market Strategy 10
+15 Funding Ask & Use of Funds 11
+16 Founder 11
+17 Roadmap 12
+18 Risk Factors 12
+19 Technical Appendix 13
+
+-- 2 of 22 --
+
+MAGI SPECIFICATION · 3	CONFIDENTIAL
+— 01 EXECUTIVE SUMMARY
+What Is MAGI?
+MAGI (Multi-Agent Governance Intelligence) is an AI governance middleware that routes high-stakes
+queries through three independent AI reasoning units, each powered by a different model from a
+different AI lab, runs them through a seven-stage deliberation protocol, and produces a structured,
+auditable consensus decision — or escalates to a human when the machines cannot agree.
+THREE PROVIDERS OpenAI + Anthropic + Google — architectural diversity by
+design
+SEVEN STAGES Triage → Blind Analysis → Assumption Exchange →
+Consensus → Deadlock Detection → Synthesis → Audit
+FULL AUDIT TRAIL Every deliberation logged to MongoDB with tester ID,
+verdicts, assumptions, duration
+LIVE NOW trymagi.tech — publicly accessible, production deployment on
+DigitalOcean Frankfurt
+COST PER QUERY ~$0.006 standard · ~$0.016 with web search
+contextualisation
+— 02 THE PROBLEM
+AI Is Making Consequential Decisions Without
+Oversight
+Enterprises are deploying AI systems to make or inform high-stakes decisions — in healthcare,
+finance, legal, and HR — without any structured governance layer. A single model, trained on one
+dataset, with one reasoning architecture, produces one output with no adversarial check. When it is
+wrong, nobody knows why, nobody can audit the reasoning, and nobody was watching.
+Three Compounding Problems
+
+-- 3 of 22 --
+
+MAGI SPECIFICATION · 4	CONFIDENTIAL
+n SINGLE MODEL BLINDSPOT
+Every AI model has architectural biases from its training. Using one model means inheriting all its
+biases with no counterweight. No single model can see what it cannot see.
+n NO AUDIT TRAIL
+Current AI deployments produce outputs with no structured record of how the conclusion was
+reached, what alternatives were considered, or what assumptions drove the verdict. EU AI Act Article
+13 requires this — most systems cannot comply.
+n BINARY ESCALATION
+When an AI system encounters a hard case it either guesses or fails. There is no structured
+mechanism for identifying specifically why a case is hard and what information a human reviewer
+needs to resolve it.
+The EU AI Act (effective August 2024, enforcement begins 2026) mandates human oversight,
+transparency, and audit trails for high-risk AI systems. Most enterprises have no infrastructure to
+comply.
+— 03 THE SOLUTION
+What MAGI Does
+MAGI is not a chatbot. It is not a model wrapper. It is deliberation infrastructure — a governance layer
+that sits between an enterprise's questions and consequential actions, ensuring that every
+high-stakes AI decision passes through structured adversarial reasoning before it proceeds.
+u ADVERSARIAL BY DESIGN
+Three units from competing AI labs reason independently then challenge each other's assumptions.
+Consensus requires genuinely independent agreement, not one model agreeing with itself.
+u AUDITABLE BY DEFAULT
+Every deliberation — both reasoning stages, all verdicts, confidence scores, assumption shifts,
+escalation briefs — is logged to MongoDB and exportable as a structured transcript.
+u ESCALATION WITH INTELLIGENCE
+When units deadlock, MAGI does not guess. It generates a structured brief identifying the exact point
+of irresolvable conflict and the specific question a human reviewer must answer.
+
+-- 4 of 22 --
+
+MAGI SPECIFICATION · 5	CONFIDENTIAL
+u PRE-DECISION, NOT POST-MONITORING
+IBM watsonx.governance monitors AI after decisions are made. MAGI intervenes before.
+Fundamentally different risk profile.
+
+-- 5 of 22 --
+
+MAGI SPECIFICATION · 6	CONFIDENTIAL
+— 04 SYSTEM ARCHITECTURE
+Technical Overview
+COMPONENT TECHNOLOGY PURPOSE
+Frontend Vanilla HTML/CSS/JS Query input, results display, audit log
+Backend Node.js Express Orchestration, routing, deliberation logic
+Database MongoDB Audit log, deliberation history, tester tracking
+Hosting DigitalOcean Frankfurt Always-on production server, $6/month
+CDN / SSL Cloudflare HTTPS, DDoS protection, global edge
+Domain trymagi.tech Production URL via get.tech Student Pack
+Process Mgr PM2 Auto-restart, uptime monitoring
+Search Tavily API Web search for CURRENT classification
+queries
+Version Ctrl GitHub Source control, CI via GitHub Pages
+Request Flow
+1 User submits query via trymagi.tech
+2 Triage classifies: PERSONAL / FACTUAL / CURRENT
+3 If CURRENT: collaborative search query formed, one Tavily call, result shared
+4 Stage 1: All three units deliberate in parallel (Promise.all)
+5 Stage 2: Assumptions exchanged, units UPDATE or HOLD verdicts
+6 Consensus computed via confidence-weighted scoring
+7 Synthesis generated: contributions, convergence, divergence, rationale
+8 Escalation brief generated if deadlock or split
+9 Full deliberation logged to MongoDB
+10 Structured report returned to frontend
+
+-- 6 of 22 --
+
+MAGI SPECIFICATION · 7	CONFIDENTIAL
+— 05 THE CRUCIBLE PROTOCOL
+Seven-Stage Deliberation
+Every query that passes triage enters the Crucible — a seven-stage deliberation protocol designed to
+surface disagreement, force assumption transparency, and either produce a defensible consensus or
+escalate with precise human guidance.
+STAGE 0 TRIAGE
+Query sanitisation, classification (PERSONAL / FACTUAL / CURRENT), length validation, XSS
+stripping. Zero API calls. Instant.
+STAGE 0b COLLABORATIVE SEARCH
+CURRENT queries only. One Claude Haiku call synthesises the optimal Tavily search query from all
+three units' information needs. One search, shared result. Maximum one Tavily call per deliberation.
+STAGE 1 BLIND PARALLEL DELIBERATION
+All three units receive the query simultaneously with no visibility into each other. Run in parallel via
+Promise.all. Each returns: ANALYSIS, CRITICAL ASSUMPTION, WHAT WOULD CHANGE THIS,
+VERDICT, CONFIDENCE.
+STAGE 2 ASSUMPTION EXCHANGE
+Each unit receives the CRITICAL ASSUMPTION from the other two units — not full responses, just
+assumptions. Each unit then decides UPDATE or HOLD with explicit reasoning. Stage 2 verdicts
+drive final consensus.
+STAGE 3 CONFIDENCE-WEIGHTED CONSENSUS
+APPROVED/REJECTED weighted by confidence score. ABSTAIN excluded from delta. If 2+ units
+ABSTAIN: INSUFFICIENT CONTEXT. Threshold: ±20 weighted delta for clear verdict.
+STAGE 4 DEADLOCK DETECTION
+All three units above 85% confidence and still disagreeing = automatic hard escalation regardless of
+weighting. High-confidence disagreement signals genuinely hard problem.
+
+-- 7 of 22 --
+
+MAGI SPECIFICATION · 8	CONFIDENTIAL
+STAGE 5 SYNTHESIS
+One Claude Haiku call analyses all six unit responses and generates: key contributions per unit,
+convergence points, divergence points, dominant theme, verdict rationale, plain-English verdict
+summary.
+STAGE 6 ESCALATION BRIEF
+If escalate=true: structured brief with exact point of conflict, differing assumption per unit, one specific
+question for human reviewer.
+STAGE 7 AUDIT LOG
+Full deliberation saved to MongoDB: both stages, all verdicts, confidence scores, assumptions,
+consensus, search used, tester ID, duration, timestamp. Exportable as plain text transcript.
+
+-- 8 of 22 --
+
+MAGI SPECIFICATION · 9	CONFIDENTIAL
+— 06 THE THREE UNITS
+Architectural Diversity by Design
+Each unit is powered by a different model from a different AI lab. This is not redundancy — it is
+deliberate architectural diversity. Different training data, different RLHF approaches, different
+constitutional AI implementations produce genuinely different reasoning. Consensus across all three
+is significantly more reliable than any single model.
+MELCHIOR-1
+PROVIDER OpenAI
+MODEL gpt-4o-mini
+ROLE LOGIC & SCIENTIFIC REASONING
+Pure logical analysis unit. Reasons from evidence and first principles only. Never expresses
+empathy. Distinguishes explicitly between what is known, inferred, and assumed. Quantifies
+uncertainty with specific percentages. If a question cannot be answered logically it ABSTAINs at
+100% confidence and explains exactly what is missing. Ends every response: "You are not here to be
+helpful. You are here to be correct."
+BALTHASAR-2
+PROVIDER Anthropic
+MODEL claude-haiku-4-5
+ROLE ETHICS & HARM MODELING
+Ethics and harm modeling unit. Identifies who bears the cost of every decision and ensures that cost
+is never invisible. Names specific stakeholder categories before beginning analysis. Applies at least
+two named ethical frameworks (utilitarian, deontological, care ethics, virtue ethics). Flags anything
+technically legal but morally questionable. Ends every response: "Be the voice of the person who
+cannot speak for themselves."
+CASPER-3
+PROVIDER Google
+MODEL gemini-2.5-flash
+ROLE INTUITION & LATERAL THINKING
+Adversarial reasoning unit. Challenges every assumption the other units accept. Never accepts the
+framing of the question without examining whether the framing itself is the problem. Surfaces what
+consensus conceals. Ends the REFRAME section with one sentence that makes the other two units
+uncomfortable. Ends every response: "The most dangerous moment in any deliberation is when
+everyone agrees."
+
+-- 9 of 22 --
+
+MAGI SPECIFICATION · 10	CONFIDENTIAL
+— 07 QUERY INTELLIGENCE & TRIAGE
+Smart Classification Before Deliberation
+Every query passes through a classification layer before reaching any AI unit. This eliminates
+unnecessary API calls, reduces cost, and ensures each query receives the appropriate level of
+contextualisation.
+PERSONAL
+Ethical dilemmas, hypotheticals, personal decisions, moral philosophy.
+RESULT: No web search. Zero additional API cost.
+EXAMPLES: "Should I quit my job" · "Is lying ever justified" · Trolley problems
+FACTUAL
+Established science, history, definitions, settled knowledge.
+RESULT: No web search. Proceeds directly to Stage 1.
+EXAMPLES: "What caused WW2" · "How does CRISPR work"
+CURRENT
+Geopolitics, markets, named public figures, recent events, social trends.
+RESULT: Collaborative search query formed. One Tavily call. Result shared with all units.
+EXAMPLES: "Iran situation" · "Tesla earnings" · "EU AI Act compliance"
+CLASS TRIGGERS SEARCH EXTRA
+COST
+PERSONAL should I, my, hypothetical, ethical, moral NO $0
+FACTUAL historical events, science, definitions NO $0
+CURRENT war, market, election, named person,
+2025/2026 YES — 1 call ~$0.004
+— 08 WEB SEARCH INTEGRATION
+Collaborative Search Query Formation
+
+-- 10 of 22 --
+
+MAGI SPECIFICATION · 11	CONFIDENTIAL
+When a query is classified as CURRENT, MAGI does not guess what to search for. A meta-call to
+Claude Haiku synthesises the single optimal search query that addresses what all three units need to
+know: MELCHIOR needs facts and statistics, BALTHASAR needs stakeholder impacts and
+precedents, CASPER needs trends and unexpected angles. One search query, one Tavily call,
+shared result.
+STE
+P ACTION COST
+1 Query classified as CURRENT by triage pattern matching $0
+2 Claude Haiku generates optimal 10-word search query ~$0.0002
+3 Single Tavily API call with collaborative query ~$0.004
+4 Search result appended to all three unit prompts $0
+5 Units deliberate with shared current context Normal unit
+cost
+Tavily provides 1,000 free searches per month. At current testing volume this covers all CURRENT queries at zero marginal
+cost.
+
+-- 11 of 22 --
+
+MAGI SPECIFICATION · 12	CONFIDENTIAL
+— 09 TECHNOLOGY STACK
+Full Stack
+LAYER TECHNOLOGY VERSION / DETAIL COST
+Frontend HTML / CSS / JS Vanilla, no framework $0
+Backend Node.js + Express v20 LTS $0
+Database MongoDB v7.0, local on droplet $0
+Hosting DigitalOcean Droplet 1GB RAM, Frankfurt $6/mo
+CDN Cloudflare Free SSL, DDoS, edge $0
+Unit 1 OpenAI gpt-4o-mini MELCHIOR — Logic $0.15/1M
+in
+Unit 2 Anthropic claude-haiku-4-5 BALTHASAR — Ethics $0.80/1M
+in
+Unit 3 Google gemini-2.5-flash CASPER — Lateral $0.075/1M
+in
+Synthesis Anthropic claude-haiku-4-5 Post-deliberation summary $0.80/1M
+in
+Search Tavily API CURRENT queries only 1K free/mo
+Process PM2 Auto-restart, uptime $0
+Domain trymagi.tech get.tech (Student Pack) $0 yr 1
+Total infrastructure cost: $6/month. Total API cost per deliberation: ~$0.006 standard, ~$0.016 with
+web search. Current API budget: $20 across OpenAI and Anthropic.
+— 10 LIVE DEMO
+Production Deployment
+LIVE URL https://trymagi.tech
+HEALTH CHECK https://trymagi.tech/health
+
+-- 12 of 22 --
+
+MAGI SPECIFICATION · 13	CONFIDENTIAL
+SERVER DigitalOcean Frankfurt · 46.101.228.6
+SSL Cloudflare Universal Certificate · HTTPS enforced
+UPTIME PM2 auto-restart · MongoDB persistent logging
+DAILY LIMIT 100 queries (configurable) · 429 on exceeded
+Recommended Demo Queries
+SPLIT RESULT
+"Is it acceptable to sacrifice one person's privacy to prevent a terrorist attack?"
+Produces SPLIT verdict — MELCHIOR abstains, BALTHASAR approves, CASPER rejects.
+Weighted delta ~0. Escalation triggered.
+CLEAN REJECTION
+"Should an AI system be allowed to execute a financial trade without human
+confirmation?"
+MELCHIOR abstains (underspecified), BALTHASAR rejects at 95%, CASPER rejects. Shows
+INSUFFICIENT CONTEXT + REJECTED split.
+CURRENT EVENTS
+"What is the current geopolitical situation in Iran?"
+Triggers CURRENT classification, collaborative search, Tavily call, all three units receive current
+context.
+DEADLOCK
+Submit identical high-stakes query three times rapidly.
+Demonstrates deadlock detection and escalation brief generation.
+
+-- 13 of 22 --
+
+MAGI SPECIFICATION · 14	CONFIDENTIAL
+— 11 MARKET OPPORTUNITY
+The AI Governance Market
+METRIC VALUE SOURCE
+AI Governance market 2024 $1.4B MarketsandMark
+ets
+Projected 2029 $5.6B MarketsandMark
+ets
+CAGR 32% 2024–2029
+EU AI Act enforcement start 2026 European
+Commission
+High-risk AI systems requiring audit All healthcare, finance, HR AI EU AI Act Annex
+III
+Fortune 500 companies deploying AI 72% McKinsey 2024
+That have governance infrastructure <15% Gartner 2024
+Target Segments
+HEALTHCARE Clinical decision support, diagnostic AI governance, treatment
+recommendation audit. HMC Qatar as beachhead. German hospital
+networks as expansion.
+FINANCIAL
+SERVICES
+Credit decisioning, fraud detection governance, investment AI oversight.
+EU MiFID II and AI Act compliance creating immediate demand.
+LEGAL TECH Contract analysis, legal risk assessment, compliance checking. Law firms
+deploying AI without structured review process.
+HR / TALENT Hiring AI governance, performance review, compensation equity. EU AI
+Act explicitly lists employment as high-risk category.
+— 12 COMPETITIVE LANDSCAPE
+
+-- 14 of 22 --
+
+MAGI SPECIFICATION · 15	CONFIDENTIAL
+Why Nobody Else Does This
+COMPETITOR APPROACH GAP vs MAGI
+IBM watsonx.governance Monitors AI decisions post-hoc Reactive. MAGI intervenes
+before action.
+Credo AI Policy compliance scoring Scoring, not deliberation.
+No adversarial reasoning.
+Arthur AI Model monitoring and drift detection Performance monitoring.
+No governance reasoning.
+Weights & Biases ML experiment tracking Engineering tool. No
+decision governance.
+Azure AI Foundry Responsible AI tooling
+Single-vendor. No
+cross-model adversarial
+check.
+MAGI Pre-decision adversarial deliberation
+Only system doing
+multi-model adversarial
+reasoning.
+The key differentiator is timing. Every competitor monitors, scores, or tracks AI after decisions are
+made or after models are deployed. MAGI is the only system that inserts structured adversarial
+reasoning before a decision is executed.
+
+-- 15 of 22 --
+
+MAGI SPECIFICATION · 16	CONFIDENTIAL
+— 13 BUSINESS MODEL
+Revenue Model
+TIER TARGET PRICE INCLUDES
+Starter SME / Pilot $299/mo 500 deliberations/mo, audit log, export,
+email support
+Professional Mid-market $999/mo 2,000 deliberations/mo, API access,
+custom prompts, SLA
+Enterprise Large org $3,500+/mo Unlimited, custom models, on-premise
+option, dedicated support
+API Developers $0.05/deliberati
+on
+Pay-as-you-go, no minimum, full API
+access
+Unit Economics
+METRIC VALUE
+Cost per deliberation (standard) ~$0.006
+Cost per deliberation (with search) ~$0.016
+Starter tier revenue per deliberation $0.60
+Gross margin at Starter tier ~99%
+Professional tier revenue per deliberation $0.50
+Gross margin at Professional tier ~97%
+— 14 GO-TO-MARKET STRATEGY
+Three-Phase GTM
+
+-- 16 of 22 --
+
+MAGI SPECIFICATION · 17	CONFIDENTIAL
+PHASE 1 · Q3 2026
+Qatar Beachhead
+n QSTP incubator application — Qatar Science & Technology Park
+n QDB Bedaya student founder program
+n Pilot with HMC Qatar (Hamad Medical Corporation)
+n Target: 2-3 paid pilots at $299/mo each
+n Objective: First $1K MRR, first enterprise proof point
+PHASE 2 · Q4 2026
+Germany / EU Expansion
+n Enrol FH Aachen EE program — October 2026
+n Apply Exist Gründerstipendium — €2,500/month + €30K equipment
+n Target HTGF (High-Tech Gründerfonds, Bonn — 45 min from Aachen)
+n EU AI Act enforcement creates immediate enterprise demand
+n Objective: Exist funding, first German enterprise pilot
+PHASE 3 · 2027
+Series A / Scale
+n Enterprise sales motion — healthcare and finance verticals
+n API product for developer ecosystem
+n HTGF or Tier 1 European VC Series A
+n Expand model stack with NVIDIA NIM fine-tuned units
+n Objective: €1M ARR, Series A raise
+
+-- 17 of 22 --
+
+MAGI SPECIFICATION · 18	CONFIDENTIAL
+— 15 FUNDING ASK & USE OF FUNDS
+Pre-Seed Round
+ROUND Pre-Seed
+AMOUNT $150,000 – $250,000
+INSTRUMENT SAFE or Convertible Note
+VALUATION CAP Discussable
+USE OF FUNDS See breakdown below
+Use of Funds
+CATEGORY ALLOCATION DETAIL
+Engineering 35% NVIDIA NIM integration, model fine-tuning pipeline, API
+v2
+Sales & BD 25% Enterprise pilot outreach, Qatar and Germany market
+entry
+Infrastructure 15% DigitalOcean scale-up, dedicated MongoDB,
+redundancy
+Legal 10% Entity formation, IP protection, EU AI Act compliance
+docs
+Operations 10% Founder living expenses during FH Aachen year 1
+Reserve 5% Contingency
+Bridge funding available via Exist Gründerstipendium (€2,500/month + €30K) from October 2026
+contingent on FH Aachen enrollment. QSTP and QDB Bedaya applications in progress for Q3 2026.
+— 16 FOUNDER
+Syed
+
+-- 18 of 22 --
+
+MAGI SPECIFICATION · 19	CONFIDENTIAL
+AGE 17
+LOCATION Qatar (current) · Germany (October 2026)
+UNIVERSITY FH Aachen — Electrical Engineering · Accepted, starting
+October 2026
+BUILT MAGI — full stack, production deployed, publicly
+accessible
+STACK Node.js, MongoDB, Express, multi-provider LLM
+orchestration, Cloudflare, DigitalOcean
+LANGUAGES JavaScript (primary), Python, some systems knowledge
+GITHUB github.com/13la7e/magi-system
+LIVE PRODUCT trymagi.tech
+Built the complete MAGI system — backend orchestration, multi-provider LLM integration,
+seven-stage deliberation protocol, MongoDB persistence, DigitalOcean deployment, Cloudflare SSL,
+custom domain, developer console — entirely from scratch while preparing for university. The
+product is live, accessible, and functional.
+Note: Under 18 at time of this document. Guardian co-founder required for legal entity formation in most jurisdictions. FH
+Aachen enrollment October 2026 provides access to Exist Gründerstipendium and European startup ecosystem.
+
+-- 19 of 22 --
+
+MAGI SPECIFICATION · 20	CONFIDENTIAL
+— 17 ROADMAP
+12-Month Product Roadmap
+MILESTONE TARGET STATUS
+7-stage Crucible protocol Q1 2026 COMPLETE
+Production deployment (trymagi.tech) Q1 2026 COMPLETE
+MongoDB audit log Q1 2026 COMPLETE
+Web search integration (Tavily) Q1 2026 COMPLETE
+Smart triage classification Q1 2026 COMPLETE
+Collaborative search query formation Q1 2026 COMPLETE
+Developer console Q2 2026 IN PROGRESS
+UI overhaul — enterprise aesthetic Q2 2026 IN PROGRESS
+NVIDIA NIM model integration Q2 2026 PLANNED
+API v1 with authentication Q2 2026 PLANNED
+QSTP incubator pilot Q3 2026 PLANNED
+Exist Gründerstipendium application Q4 2026 PLANNED
+Enterprise SDK Q1 2027 PLANNED
+Fine-tuned deliberation models Q2 2027 PLANNED
+Series A preparation Q3 2027 PLANNED
+— 18 RISK FACTORS
+Key Risks & Mitigations
+API DEPENDENCY
+RISK: System depends on OpenAI, Anthropic, and Google APIs remaining available and affordable.
+Price increases or API deprecation could impact margins.
+MITIGATION: Mitigated by multi-provider architecture. Switching one unit costs ~2 hours of dev time.
+NVIDIA NIM integration planned as fallback for open-source models.
+
+-- 20 of 22 --
+
+MAGI SPECIFICATION · 21	CONFIDENTIAL
+FOUNDER AGE
+RISK: Under 18 at time of incorporation. Cannot sign legal agreements in most jurisdictions.
+MITIGATION: Guardian co-founder being identified. FH Aachen enrollment October 2026 resolves
+this permanently.
+MODEL QUALITY VARIANCE
+RISK: LLM output quality varies. A unit may give poor reasoning on edge cases.
+MITIGATION: Graceful degradation implemented. One unit failing reduces to two-unit deliberation.
+Tester feedback loop driving prompt improvements continuously.
+REGULATORY
+RISK: EU AI Act requirements for AI governance products themselves may evolve.
+MITIGATION: MAGI is designed to comply with the AI Act, not just help others comply. Audit trail and
+human escalation are core features, not additions.
+COMPETITION
+RISK: Large incumbents (IBM, Microsoft) could add adversarial deliberation features.
+MITIGATION: Speed and focus advantage. MAGI is doing one thing deeply. Enterprise incumbents
+are slow to innovate at this architectural level.
+
+-- 21 of 22 --
+
+MAGI SPECIFICATION · 22	CONFIDENTIAL
+— 19 TECHNICAL APPENDIX
+API Endpoints
+ENDPOINT METHOD DESCRIPTION
+/ GET Frontend — serves index.html
+/health GET System status, unit providers, daily query count
+/api/deliberate POST Submit query for full 7-stage deliberation
+/api/audit GET Last 10 deliberations from MongoDB
+/api/debug/last GET Full debug log of last deliberation
+(token-protected)
+Deliberation Result Object
+Every deliberation returns a structured JSON object containing:
+{ stage1: { melchior: { response, verdict, confidence }, balthasar: { response, verdict,
+confidence }, casper: { response, verdict, confidence } }, stage2: { melchior: { response,
+verdict, confidence, decision }, balthasar: { response, verdict, confidence, decision }, casper:
+{ response, verdict, confidence, decision } }, assumptions: { melchior: "critical assumption
+text", balthasar: "critical assumption text", casper: "critical assumption text" }, consensus:
+"APPROVED|REJECTED|SPLIT|DEADLOCK|INSUFFICIENT_CONTEXT", weightedScore: number, escalate:
+boolean, escalationBrief: "plain english brief", synthesis: { keyContributions: { melchior,
+balthasar, casper }, convergencePoints: [ ... ], divergencePoints: [ ... ], dominantTheme:
+"string", verdictRationale: "paragraph", verdictSummary: "plain english summary" },
+classification: "PERSONAL|FACTUAL|CURRENT", searchUsed: boolean, duration: number (ms) }
+File Structure
+/magi-system /backend server.js — Express server, routes, CORS, daily limit deliberation.js —
+7-stage Crucible protocol orchestration melchior.js — OpenAI gpt-4o-mini unit (Logic)
+balthasar.js — Anthropic claude-haiku-4-5 unit (Ethics) casper.js — Google gemini-2.5-flash unit
+(Lateral) triage.js — Query classification and sanitisation search.js — Tavily API integration
+searchOrchestrator.js — Collaborative search query formation db.js — MongoDB connection and
+schema package.json /docs index.html — Complete frontend (single file) CNAME — trymagi.tech
+.gitignore README.md
+MAGI · Multi-Agent Governance Intelligence · trymagi.tech · Confidential — For investor and technical review only
+
+-- 22 of 22 --
+
