@@ -2,7 +2,8 @@
 
 ## Current Task
 
-- Align workspace behavior with MAGI April 2026 product specification.
+- Active sprint: Sprint 01 — Security Baseline + API Guardrails
+- Last completed story: S1-02 — Request Validation
 
 ## Key Facts
 
@@ -18,6 +19,50 @@
 - Classifications: `PERSONAL`, `FACTUAL`, `CURRENT`
 - Key API endpoints: `/`, `/health`, `/api/deliberate`, `/api/audit`, `/api/debug/last`
 
-## Open Items
+## Sprint 01 Progress
 
-- Keep this file updated with newest product constraints and implementation priorities.
+### Completed
+- S1-01 — Added helmet (CSP), 50kb body limit, per-route rate limits (deliberate 20/min, audit 30/min, debug 10/min)
+- S1-02 — Added schema validation for POST /api/deliberate: query required/max 2000, testerId optional alphanumeric+hyphens/max 100, developerMode optional boolean; error shape { error, field, message }
+
+### In Progress
+- S1-03 — Debug Endpoint Hardening (next)
+
+### Not Started
+- S1-04 — Configuration Refactor
+- S1-05 — Smoke Test Script
+
+## Files Changed This Session
+
+- `backend/server.js` — replaced legacy query check with full S1-02 schema validation block
+
+## Checks Run
+
+- `node --check backend/server.js` — pass
+
+## Blockers
+
+- Known: error shape inconsistency — S1-02 validation uses `{ error, field, message }` but legacy triage/daily-limit errors still use `{ status: 'error', message }` — tracked in memory, batch-fix in a future refactor
+- Note: Helmet CSP may break Google Fonts in frontend — verify in browser after deploy
+
+## Next Action
+
+- File: `backend/server.js`
+- Task: Implement S1-03 — add `ENABLE_DEBUG_ENDPOINT` env flag (default false); return 404 when false (do not reveal endpoint); require `x-debug-token` header min 32 chars when true; log unauthorized access attempts (IP + timestamp) to stdout
+
+## Detailed Change Log
+
+### `backend/server.js`
+- Removed: single-line legacy check `if (!rawQuery || typeof rawQuery !== 'string')`
+- Added: full validation block before triage call in `POST /api/deliberate`:
+  - `query` missing, non-string, or blank → 400 `{ error: 'VALIDATION_ERROR', field: 'query', message: '...' }`
+  - `query` length > 2000 → 400 same shape
+  - `testerId` present but non-string → 400
+  - `testerId` length > 100 → 400
+  - `testerId` fails `/^[a-zA-Z0-9-]+$/` → 400 (rejects XSS payloads and special chars)
+  - `developerMode` present but non-boolean → 400
+  - All valid → falls through to triage and deliberation unchanged
+
+## Issues Found This Session
+
+- Legacy error responses downstream (triage rejection, daily limit 429) still use `{ status: 'error', message }` — not fixed this session, logged as known inconsistency for future batch refactor

@@ -5,6 +5,8 @@ const cors = require('cors');
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
 const { connectDB, getDailyCount, logDeliberation, getRecentLogs } = require('./db');
@@ -41,12 +43,29 @@ const allowedOrigins = [
   'https://www.trymagi.tech',
 ];
 
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+    },
+  },
+}));
+
 app.use(cors({
   origin: allowedOrigins,
   methods: ['GET', 'POST'],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50kb' }));
+
+const deliberateRateLimit = rateLimit({ windowMs: 60 * 1000, max: 20 });
+const auditRateLimit = rateLimit({ windowMs: 60 * 1000, max: 30 });
+const debugRateLimit = rateLimit({ windowMs: 60 * 1000, max: 10 });
 
 app.use(express.static(path.join(__dirname, '../docs')));
 
@@ -73,7 +92,7 @@ app.get('/health', async (req, res, next) => {
   }
 });
 
-app.get('/api/audit', async (req, res, next) => {
+app.get('/api/audit', auditRateLimit, async (req, res, next) => {
   try {
     const logs = await getRecentLogs(10);
     const formatted = logs.map((e) => {
@@ -275,11 +294,28 @@ function unitCost(model, tokensIn, tokensOut) {
   return ((tokensIn / 1000000) * price.in) + ((tokensOut / 1000000) * price.out);
 }
 
-app.post('/api/deliberate', async (req, res, next) => {
+app.post('/api/deliberate', deliberateRateLimit, async (req, res, next) => {
   const { query: rawQuery, testerId, developerMode } = req.body;
 
-  if (!rawQuery || typeof rawQuery !== 'string') {
-    return res.status(400).json({ status: 'error', message: 'query must be a non-empty string' });
+  if (!rawQuery || typeof rawQuery !== 'string' || rawQuery.trim().length === 0) {
+    return res.status(400).json({ error: 'VALIDATION_ERROR', field: 'query', message: 'query is required and must be a non-empty string' });
+  }
+  if (rawQuery.length > 2000) {
+    return res.status(400).json({ error: 'VALIDATION_ERROR', field: 'query', message: 'query must not exceed 2000 characters' });
+  }
+  if (testerId !== undefined) {
+    if (typeof testerId !== 'string') {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', field: 'testerId', message: 'testerId must be a string' });
+    }
+    if (testerId.length > 100) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', field: 'testerId', message: 'testerId must not exceed 100 characters' });
+    }
+    if (testerId.length > 0 && !/^[a-zA-Z0-9-]+$/.test(testerId)) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', field: 'testerId', message: 'testerId may only contain alphanumeric characters and hyphens' });
+    }
+  }
+  if (developerMode !== undefined && typeof developerMode !== 'boolean') {
+    return res.status(400).json({ error: 'VALIDATION_ERROR', field: 'developerMode', message: 'developerMode must be a boolean' });
   }
 
   const triage = preprocessQuery(rawQuery);
@@ -490,7 +526,7 @@ app.post('/api/deliberate', async (req, res, next) => {
   }
 });
 
-app.get('/api/debug/last', (req, res) => {
+app.get('/api/debug/last', debugRateLimit, (req, res) => {
   if (req.headers['x-debug-token'] !== process.env.DEBUG_TOKEN) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
