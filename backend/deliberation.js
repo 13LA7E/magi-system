@@ -438,6 +438,11 @@ Reference this context where relevant in your analysis.`
       stage1: { melchior: melchiorS1, balthasar: balthasarS1, casper: casperS1 },
       stage2: null,
       assumptions: null,
+      consensus: 'INSUFFICIENT_CONTEXT',
+      weightedScore: 0,
+      escalate: false,
+      classification,
+      searchUsed,
       degraded: true,
       unavailableUnits,
     };

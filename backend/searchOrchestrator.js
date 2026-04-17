@@ -2,6 +2,9 @@ const { tavilySearch } = require('./search');
 const Anthropic = require('@anthropic-ai/sdk');
 
 async function formCollaborativeSearchQuery(query) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('searchOrchestrator: ANTHROPIC_API_KEY is not configured');
+  }
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
   });
@@ -47,7 +50,20 @@ async function getSearchContext(query, classification) {
   }
 
   const start = Date.now();
-  const collaboration = await formCollaborativeSearchQuery(query);
+  let collaboration;
+  try {
+    collaboration = await formCollaborativeSearchQuery(query);
+  } catch (err) {
+    console.error('[searchOrchestrator] Collaborative query generation failed:', err.message);
+    return {
+      searchUsed: false,
+      searchQuery: null,
+      searchContext: null,
+      tavilyResponse: null,
+      tokensUsed: null,
+      elapsedMs: Date.now() - start,
+    };
+  }
   const searchQuery = collaboration?.searchQuery;
   if (!searchQuery) {
     return {

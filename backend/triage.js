@@ -29,18 +29,16 @@ function preprocessQuery(query) {
     return { error: 'Invalid query' };
   }
   const trimmed = query.trim();
-  if (trimmed.length < 10) {
-    return {
-      error: 'Query too short for meaningful deliberation'
-    };
-  }
   const clean = trimmed
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
     .substring(0, 2000);
-  const note = trimmed.length > 2000
-    ? 'Query truncated to 2000 chars'
-    : null;
+  if (clean.length < 10) {
+    return { error: 'Query too short for meaningful deliberation' };
+  }
+  const note = trimmed.length > 2000 ? 'Query truncated to 2000 chars' : null;
   const classification = classifyQuery(clean);
   return { query: clean, note, classification };
 }

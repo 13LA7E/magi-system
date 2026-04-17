@@ -31,7 +31,8 @@ const deliberationSchema = new mongoose.Schema({
 const Deliberation = mongoose.model('Deliberation', deliberationSchema);
 
 async function connectDB() {
-  await mongoose.connect('mongodb://localhost:27017/magi');
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/magi';
+  await mongoose.connect(uri);
   console.log('MongoDB connected');
 }
 
@@ -48,8 +49,8 @@ async function getRecentLogs(n = 10) {
 }
 
 async function getDailyCount() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  const start = new Date(`${todayUtc}T00:00:00.000Z`);
   return Deliberation.countDocuments({
     timestamp: { $gte: start }
   });

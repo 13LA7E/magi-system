@@ -1,5 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
@@ -331,15 +332,15 @@ app.post('/api/deliberate', deliberateRateLimit, async (req, res, next) => {
     ? testerId.trim()
     : 'ANONYMOUS';
 
-  const dailyUsed = await getDailyCount();
-  if (dailyUsed >= DAILY_LIMIT) {
-    return res.status(429).json({
-      error: 'RATE_LIMIT_EXCEEDED',
-      message: `Daily query limit of ${DAILY_LIMIT} reached. Resets at midnight UTC.`,
-    });
-  }
-
   try {
+    const dailyUsed = await getDailyCount();
+    if (dailyUsed >= DAILY_LIMIT) {
+      return res.status(429).json({
+        error: 'RATE_LIMIT_EXCEEDED',
+        message: `Daily query limit of ${DAILY_LIMIT} reached. Resets at midnight UTC.`,
+      });
+    }
+
     const deliberationStart = Date.now();
     const result = await runDeliberation(cleanQuery, { developerMode: !!developerMode });
     const synthesisResult = await generateSynthesisSummary(
@@ -536,7 +537,10 @@ app.get('/api/debug/last', debugRateLimit, (req, res) => {
 
   const expectedToken = process.env.DEBUG_TOKEN;
   const token = req.headers['x-debug-token'];
-  if (!expectedToken || !token || token !== expectedToken) {
+  const tokenValid = expectedToken && token &&
+    token.length === expectedToken.length &&
+    crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expectedToken));
+  if (!tokenValid) {
     console.log(`[MAGI] Unauthorized debug access attempt — IP: ${req.ip} — ${new Date().toISOString()}`);
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -570,10 +574,13 @@ if (process.env.ENABLE_DEBUG_ENDPOINT === 'true') {
   }
 }
 
-connectDB().catch((err) => {
-  console.error('MongoDB connection failed:', err.message);
-});
-
-app.listen(80, () => {
-  console.log('MAGI backend running on HTTP port 80');
-});
+connectDB()
+  .then(() => {
+    app.listen(80, () => {
+      console.log('MAGI backend running on HTTP port 80');
+    });
+  })
+  .catch((err) => {
+    console.error('[MAGI] FATAL: MongoDB connection failed:', err.message);
+    process.exit(1);
+  });
