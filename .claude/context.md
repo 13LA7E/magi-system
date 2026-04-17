@@ -3,7 +3,7 @@
 ## Current Task
 
 - Active sprint: Sprint 01 — Security Baseline + API Guardrails
-- Last completed story: S1-03 — Debug Endpoint Hardening
+- Last completed story: S1-03 — Debug Endpoint Hardening (extended: full security review pass)
 
 ## Key Facts
 
@@ -24,7 +24,7 @@
 ### Completed
 - S1-01 — Added helmet (CSP), 50kb body limit, per-route rate limits (deliberate 20/min, audit 30/min, debug 10/min)
 - S1-02 — Added schema validation for POST /api/deliberate: query required/max 2000, testerId optional alphanumeric+hyphens/max 100, developerMode optional boolean; error shape { error, field, message }
-- S1-03 — Debug endpoint hardened: 404 when flag unset, 403 + stdout log on weak/missing token, full payload on valid token ≥32 chars
+- S1-03 — Debug endpoint hardened + full security review pass (see change log below)
 
 ### In Progress
 - S1-04 — Configuration Refactor (next)
@@ -34,8 +34,7 @@
 
 ## Files Changed This Session
 
-- `backend/server.js` — replaced debug endpoint auth logic with ENABLE_DEBUG_ENDPOINT flag + token length check + unauthorized access logging
-- `.claudeignore` — replaced existing entries with exact three entries matching .gitignore (.env, node_modules/, backend/audit.json)
+- `backend/server.js`
 
 ## Checks Run
 
@@ -43,8 +42,8 @@
 
 ## Blockers
 
-- Known: error shape inconsistency — S1-02 validation uses `{ error, field, message }` but legacy triage/daily-limit errors still use `{ status: 'error', message }` — tracked in memory, batch-fix in a future refactor
-- Note: Helmet CSP may break Google Fonts in frontend — verify in browser after deploy
+- None active
+- Known deferred: `parseInt` in TRUST_PROXY_HOPS accepts prefixed strings like `2abc` — not a bug, tracked in memory for future config hygiene pass
 
 ## Next Action
 
@@ -60,20 +59,34 @@
   - `query` length > 2000 → 400 same shape
   - `testerId` present but non-string → 400
   - `testerId` length > 100 → 400
-  - `testerId` fails `/^[a-zA-Z0-9-]+$/` → 400 (rejects XSS payloads and special chars)
+  - `testerId` fails `/^[a-zA-Z0-9-]+$/` → 400
   - `developerMode` present but non-boolean → 400
-  - All valid → falls through to triage and deliberation unchanged
 
-### `backend/server.js` (S1-03, this session)
-- Removed: token comparison against `process.env.DEBUG_TOKEN`; removed 401 response
-- Added: check `process.env.ENABLE_DEBUG_ENDPOINT === 'true'`; returns 404 when false (hides endpoint existence)
-- Added: when flag true, check `x-debug-token` header length ≥ 32; returns 403 on failure
-- Added: stdout log of IP + timestamp on unauthorized access attempt (403 path)
+### `backend/server.js` (S1-03 extended, this session)
 
-### `.claudeignore` (this session)
-- Replaced prior contents (node_modules/, .env, .env.*, *.log, *.lock, dist/, coverage/) with exact three entries mirroring .gitignore: .env, node_modules/, backend/audit.json
+**Debug endpoint auth (High)**
+- Removed: token length-only check (≥32 chars) — any long string was accepted
+- Added: `process.env.DEBUG_TOKEN` secret comparison; endpoint returns 403 if token doesn't match exactly
+- Added: boot-time guard — if `ENABLE_DEBUG_ENDPOINT=true` and `DEBUG_TOKEN` is absent or under 32 chars, process exits with fatal error before binding
+
+**Trust proxy (Medium)**
+- Added: `app.set('trust proxy', ...)` so `req.ip` resolves real client IP behind Cloudflare
+- Added: reads `TRUST_PROXY_HOPS` env var; falls back to 1; clamped with `Math.max(1, ...)` to reject negatives
+- Added: comment documenting current expected topology (Cloudflare → origin = 1 hop)
+
+**Error shape consistency (Low)**
+- Changed: triage rejection at `POST /api/deliberate` from `{ status: 'error', message }` to `{ error: 'VALIDATION_ERROR', message }`
+- Changed: daily limit 429 from `{ status: 'error', message }` to `{ error: 'RATE_LIMIT_EXCEEDED', message }`
+- Changed: global 500 error handler from `{ status: 'error', message }` to `{ error: 'INTERNAL_ERROR', message }`
+
+**Duplicate variable cleanup (Low)**
+- Removed: `const debugEnabled` local variable inside `/api/debug/last` handler — inlined env check directly
+- Removed: `const debugEnabled` at boot-time guard — inlined env check directly
 
 ## Issues Found This Session
 
-- Legacy error responses downstream (triage rejection, daily limit 429) still use `{ status: 'error', message }` — not fixed this session, logged as known inconsistency for future batch refactor
-- Prior `.claudeignore` had extra entries (.env.*, *.log, *.lock, dist/, coverage/) not present in .gitignore — replaced with exact match per user instruction
+- Debug token auth was effectively public (length check only) — fixed with secret comparison + boot guard
+- `req.ip` was logging proxy address, not real client — fixed with trust proxy setting
+- Error shapes were inconsistent across 400/429/500 paths — unified to `{ error: 'CODE', message }`
+- `debugEnabled` declared in two separate scopes — eliminated both in favour of inline checks
+- `TRUST_PROXY_HOPS` accepts prefixed coercions like `2abc` via parseInt — deferred, saved to memory

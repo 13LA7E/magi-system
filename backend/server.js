@@ -43,6 +43,9 @@ const allowedOrigins = [
   'https://www.trymagi.tech',
 ];
 
+// TRUST_PROXY_HOPS defaults to 1 (Cloudflare → origin). Adjust if infra path changes.
+app.set('trust proxy', Math.max(1, parseInt(process.env.TRUST_PROXY_HOPS, 10) || 1));
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -320,7 +323,7 @@ app.post('/api/deliberate', deliberateRateLimit, async (req, res, next) => {
 
   const triage = preprocessQuery(rawQuery);
   if (triage.error) {
-    return res.status(400).json({ status: 'error', message: triage.error });
+    return res.status(400).json({ error: 'VALIDATION_ERROR', message: triage.error });
   }
 
   const cleanQuery = triage.query;
@@ -331,7 +334,7 @@ app.post('/api/deliberate', deliberateRateLimit, async (req, res, next) => {
   const dailyUsed = await getDailyCount();
   if (dailyUsed >= DAILY_LIMIT) {
     return res.status(429).json({
-      status: 'error',
+      error: 'RATE_LIMIT_EXCEEDED',
       message: `Daily query limit of ${DAILY_LIMIT} reached. Resets at midnight UTC.`,
     });
   }
@@ -527,14 +530,13 @@ app.post('/api/deliberate', deliberateRateLimit, async (req, res, next) => {
 });
 
 app.get('/api/debug/last', debugRateLimit, (req, res) => {
-  const debugEnabled = process.env.ENABLE_DEBUG_ENDPOINT === 'true';
-
-  if (!debugEnabled) {
+  if (process.env.ENABLE_DEBUG_ENDPOINT !== 'true') {
     return res.status(404).json({ error: 'Not found' });
   }
 
+  const expectedToken = process.env.DEBUG_TOKEN;
   const token = req.headers['x-debug-token'];
-  if (!token || token.length < 32) {
+  if (!expectedToken || !token || token !== expectedToken) {
     console.log(`[MAGI] Unauthorized debug access attempt — IP: ${req.ip} — ${new Date().toISOString()}`);
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -548,7 +550,7 @@ app.get('/api/debug/last', debugRateLimit, (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ status: 'error', message: 'Internal server error' });
+  res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Internal server error' });
 });
 
 // const sslOptions = {
@@ -559,6 +561,14 @@ app.use((err, req, res, next) => {
 // https.createServer(sslOptions, app).listen(443, () => {
 //   console.log('MAGI backend running on HTTPS port 443');
 // });
+
+if (process.env.ENABLE_DEBUG_ENDPOINT === 'true') {
+  const debugToken = process.env.DEBUG_TOKEN || '';
+  if (debugToken.length < 32) {
+    console.error('[MAGI] FATAL: ENABLE_DEBUG_ENDPOINT is true but DEBUG_TOKEN is missing or shorter than 32 characters. Refusing to start.');
+    process.exit(1);
+  }
+}
 
 connectDB().catch((err) => {
   console.error('MongoDB connection failed:', err.message);
