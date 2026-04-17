@@ -527,8 +527,16 @@ app.post('/api/deliberate', deliberateRateLimit, async (req, res, next) => {
 });
 
 app.get('/api/debug/last', debugRateLimit, (req, res) => {
-  if (req.headers['x-debug-token'] !== process.env.DEBUG_TOKEN) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  const debugEnabled = process.env.ENABLE_DEBUG_ENDPOINT === 'true';
+
+  if (!debugEnabled) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const token = req.headers['x-debug-token'];
+  if (!token || token.length < 32) {
+    console.log(`[MAGI] Unauthorized debug access attempt — IP: ${req.ip} — ${new Date().toISOString()}`);
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   if (!lastDebugLog) {
