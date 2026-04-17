@@ -3,7 +3,7 @@
 ## Current Task
 
 - Active sprint: Sprint 01 — Security Baseline + API Guardrails
-- Last completed story: S1-02 — Request Validation
+- Last completed story: S1-03 — Debug Endpoint Hardening
 
 ## Key Facts
 
@@ -24,17 +24,18 @@
 ### Completed
 - S1-01 — Added helmet (CSP), 50kb body limit, per-route rate limits (deliberate 20/min, audit 30/min, debug 10/min)
 - S1-02 — Added schema validation for POST /api/deliberate: query required/max 2000, testerId optional alphanumeric+hyphens/max 100, developerMode optional boolean; error shape { error, field, message }
+- S1-03 — Debug endpoint hardened: 404 when flag unset, 403 + stdout log on weak/missing token, full payload on valid token ≥32 chars
 
 ### In Progress
-- S1-03 — Debug Endpoint Hardening (next)
+- S1-04 — Configuration Refactor (next)
 
 ### Not Started
-- S1-04 — Configuration Refactor
 - S1-05 — Smoke Test Script
 
 ## Files Changed This Session
 
-- `backend/server.js` — replaced legacy query check with full S1-02 schema validation block
+- `backend/server.js` — replaced debug endpoint auth logic with ENABLE_DEBUG_ENDPOINT flag + token length check + unauthorized access logging
+- `.claudeignore` — replaced existing entries with exact three entries matching .gitignore (.env, node_modules/, backend/audit.json)
 
 ## Checks Run
 
@@ -47,12 +48,12 @@
 
 ## Next Action
 
-- File: `backend/server.js`
-- Task: Implement S1-03 — add `ENABLE_DEBUG_ENDPOINT` env flag (default false); return 404 when false (do not reveal endpoint); require `x-debug-token` header min 32 chars when true; log unauthorized access attempts (IP + timestamp) to stdout
+- File: `backend/server.js` and `.env.example`
+- Task: Implement S1-04 — move DAILY_LIMIT, CORS_ORIGINS, NODE_ENV to env with safe fallbacks; add startup validation warnings (don't crash); log resolved config on startup (redact secrets); add all new keys to `.env.example` with comments
 
 ## Detailed Change Log
 
-### `backend/server.js`
+### `backend/server.js` (S1-02, prior session)
 - Removed: single-line legacy check `if (!rawQuery || typeof rawQuery !== 'string')`
 - Added: full validation block before triage call in `POST /api/deliberate`:
   - `query` missing, non-string, or blank → 400 `{ error: 'VALIDATION_ERROR', field: 'query', message: '...' }`
@@ -63,6 +64,16 @@
   - `developerMode` present but non-boolean → 400
   - All valid → falls through to triage and deliberation unchanged
 
+### `backend/server.js` (S1-03, this session)
+- Removed: token comparison against `process.env.DEBUG_TOKEN`; removed 401 response
+- Added: check `process.env.ENABLE_DEBUG_ENDPOINT === 'true'`; returns 404 when false (hides endpoint existence)
+- Added: when flag true, check `x-debug-token` header length ≥ 32; returns 403 on failure
+- Added: stdout log of IP + timestamp on unauthorized access attempt (403 path)
+
+### `.claudeignore` (this session)
+- Replaced prior contents (node_modules/, .env, .env.*, *.log, *.lock, dist/, coverage/) with exact three entries mirroring .gitignore: .env, node_modules/, backend/audit.json
+
 ## Issues Found This Session
 
 - Legacy error responses downstream (triage rejection, daily limit 429) still use `{ status: 'error', message }` — not fixed this session, logged as known inconsistency for future batch refactor
+- Prior `.claudeignore` had extra entries (.env.*, *.log, *.lock, dist/, coverage/) not present in .gitignore — replaced with exact match per user instruction
