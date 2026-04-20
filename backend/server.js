@@ -1,6 +1,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const crypto = require('crypto');
+const { exec } = require('child_process');
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
@@ -11,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 const { runDeliberation } = require('./deliberation');
 const { preprocessQuery } = require('./triage');
 const { connectDB, getDailyCount, logDeliberation, getRecentLogs } = require('./db');
+const { setupAdminRoutes } = require('./adminEndpoint');
 
 const app = express();
 const DAILY_LIMIT = 100;
@@ -82,6 +84,7 @@ app.get('/health', async (req, res, next) => {
     const used = await getDailyCount();
     res.json({
       status: 'ok',
+  
       units: ['melchior', 'balthasar', 'casper'],
       providers: {
         melchior: 'OpenAI',
@@ -99,6 +102,7 @@ app.get('/health', async (req, res, next) => {
 app.get('/api/audit', auditRateLimit, async (req, res, next) => {
   try {
     const logs = await getRecentLogs(10);
+  
     const formatted = logs.map((e) => {
       const stage2 = e.stage2 || {};
       return {
@@ -552,7 +556,12 @@ app.get('/api/debug/last', debugRateLimit, (req, res) => {
   return res.json({ status: 'ok', debug: lastDebugLog });
 });
 
+// Setup admin endpoints
+setupAdminRoutes(app);
+
 app.use((err, req, res, next) => {
+
+
   console.error(err.stack);
   res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Internal server error' });
 });
