@@ -560,8 +560,6 @@ app.get('/api/debug/last', debugRateLimit, (req, res) => {
 setupAdminRoutes(app);
 
 app.use((err, req, res, next) => {
-
-
   console.error(err.stack);
   res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Internal server error' });
 });
