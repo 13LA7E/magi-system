@@ -12,7 +12,12 @@ const { preprocessQuery } = require('./triage');
 const { connectDB, getDailyCount, logDeliberation, getRecentLogs } = require('./db');
 
 const app = express();
-const DAILY_LIMIT = 100;
+
+const DAILY_LIMIT = process.env.DAILY_LIMIT ? parseInt(process.env.DAILY_LIMIT, 10) : 100;
+if (!process.env.DAILY_LIMIT) {
+  console.warn('[MAGI] DAILY_LIMIT not set — defaulting to 100');
+}
+
 let lastDebugLog = null;
 
 const PRICING_PER_MILLION = {
@@ -35,13 +40,14 @@ function logApiKeyStatus() {
 
 logApiKeyStatus();
 
-const allowedOrigins = [
-  'http://localhost:3001',
-  'http://127.0.0.1:5500',
-  'https://13la7e.github.io',
-  'https://trymagi.tech',
-  'https://www.trymagi.tech',
-];
+const defaultOrigins = 'https://trymagi.tech';
+const rawOrigins = process.env.CORS_ORIGINS || defaultOrigins;
+const allowedOrigins = rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+
+if (process.env.NODE_ENV === 'production' && allowedOrigins.some((o) => o.includes('localhost'))) {
+  console.warn('[MAGI] CORS_ORIGINS contains localhost in production — verify this is intentional');
+}
+console.log('[MAGI] Config — DAILY_LIMIT:', DAILY_LIMIT, '| NODE_ENV:', process.env.NODE_ENV || 'unset', '| CORS_ORIGINS:', allowedOrigins.join(', ') || '(none)', '| ENABLE_DEBUG_ENDPOINT:', process.env.ENABLE_DEBUG_ENDPOINT || 'false');
 
 app.use(helmet({
   contentSecurityPolicy: {
